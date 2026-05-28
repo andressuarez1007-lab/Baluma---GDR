@@ -363,6 +363,222 @@ html, body {
 .eq-prop:last-child { border-bottom: none; }
 .eq-prop-label { color: var(--muted); }
 </style>
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Supabase Config
+const SUPABASE_URL = 'https://oeggvtvdizippgetrrih.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lZ2d2dHZkaXppcHBnZXRycmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODAxNTQsImV4cCI6MjA5NTU1NjE1NH0.O793npT8vuckYwHii9g3Seo8r3pXALIza5rb_yrKn0k';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentUser = null;
+let currentMes = new Date();
+let tareasDelMes = [];
+let equipos = [];
+
+// Obtener mes y año actual
+function getMesActual() {
+  const hoy = new Date();
+  return {
+    mes: hoy.getMonth() + 1,
+    año: hoy.getFullYear(),
+    mesAnio: (hoy.getMonth() + 1).toString().padStart(2, '0') + '/' + hoy.getFullYear()
+  };
+}
+
+// Obtener mes próximo
+function getProximoMes() {
+  const prox = new Date(currentMes);
+  prox.setMonth(prox.getMonth() + 1);
+  return {
+    mes: prox.getMonth() + 1,
+    año: prox.getFullYear(),
+    mesAnio: (prox.getMonth() + 1).toString().padStart(2, '0') + '/' + prox.getFullYear()
+  };
+}
+
+// Validar login contra Supabase
+async function validarLogin(email, password) {
+  try {
+    // Buscar usuario en tabla usuarios
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('email', email)
+      .single();
+    
+    if (error || !data) {
+      alert('Usuario no encontrado');
+      return null;
+    }
+    
+    // Aquí en producción usarías Supabase Auth real
+    // Por ahora validamos que exista el usuario
+    currentUser = {
+      id: data.id,
+      nombre: data.nombre,
+      email: data.email,
+      rol: data.rol,
+      initials: data.nombre.split(' ').map(n => n[0]).join('')
+    };
+    
+    return currentUser;
+  } catch (err) {
+    console.error('Error validando login:', err);
+    return null;
+  }
+}
+
+// Cargar tareas del mes próximo
+async function cargarTareasProximoMes() {
+  try {
+    const prox = getProximoMes();
+    const inicio = new Date(prox.año, prox.mes - 1, 1);
+    const fin = new Date(prox.año, prox.mes, 0);
+    
+    const { data, error } = await supabase
+      .from('tareas')
+      .select('*')
+      .gte('fecha_apertura', inicio.toISOString().split('T')[0])
+      .lte('fecha_apertura', fin.toISOString().split('T')[0])
+      .order('titulo', { ascending: true });
+    
+    if (error) throw error;
+    tareasDelMes = data || [];
+    return tareasDelMes;
+  } catch (err) {
+    console.error('Error cargando tareas:', err);
+    return [];
+  }
+}
+
+// Cargar equipos (extintores)
+async function cargarEquipos() {
+  try {
+    const { data, error } = await supabase
+      .from('equipos')
+      .select('*')
+      .eq('estado', 'activo')
+      .order('nombre', { ascending: true });
+    
+    if (error) throw error;
+    equipos = data || [];
+    return equipos;
+  } catch (err) {
+    console.error('Error cargando equipos:', err);
+    return [];
+  }
+}
+
+// Actualizar asignación de tarea
+async function asignarTarea(tareaId, responsableId) {
+  try {
+    const { error } = await supabase
+      .from('tareas')
+      .update({ responsable_id: responsableId })
+      .eq('id', tareaId);
+    
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error asignando tarea:', err);
+    return false;
+  }
+}
+
+console.log('✅ Supabase integrado');
+
+
+// Actualizar pantalla de home con datos del usuario
+async function actualizarHome() {
+  if (!currentUser) return;
+  
+  // Actualizar avatar y badge
+  document.getElementById('home-av').textContent = currentUser.initials;
+  const badgeMap = { 'supervisor': 'lb-s', 'tecnica': 'lb-t', 'auxiliar': 'lb-a' };
+  document.getElementById('home-badge').className = 'lu-badge ' + (badgeMap[currentUser.rol] || 'lb-p');
+  
+  // Actualizar encabezado si es admin
+  if (currentUser.rol !== 'supervisor') {
+    document.getElementById('btn-admin').style.display = 'none';
+  }
+  
+  console.log('✅ Home actualizado para:', currentUser.nombre);
+}
+
+// Función para cargar y mostrar tareas del próximo mes
+async function mostrarTareasProximoMes() {
+  const tareas = await cargarTareasProximoMes();
+  
+  if (!tareas || tareas.length === 0) {
+    console.log('No hay tareas para el próximo mes');
+    return;
+  }
+  
+  // Crear elementos en la pantalla de tareas (cuando exista)
+  let html = '';
+  
+  for (const tarea of tareas) {
+    const estado = tarea.responsable_id ? 'Asignada' : 'Sin asignar';
+    const color = tarea.nivel_criticidad === 'critico' ? 'c' : 
+                  tarea.nivel_criticidad === 'alto' ? 'a' :
+                  tarea.nivel_criticidad === 'medio' ? 'm' : 'b';
+    
+    html += \`
+    <div class="tarea-card" style="cursor:pointer;" onclick="editarTarea('\${tarea.id}')">
+      <div class="tarea-barra" style="background:var(--r\${color})"></div>
+      <div class="tarea-inner">
+        <div class="tarea-top">
+          <div class="tarea-nombre">\${tarea.titulo}</div>
+          <span class="rb rb-\${color}" style="font-size:9px;">\${tarea.nivel_criticidad.toUpperCase()}</span>
+        </div>
+        <div class="tarea-meta">
+          <span><i class="ti ti-calendar"></i>\${tarea.fecha_apertura}</span>
+          <span>\${estado}</span>
+        </div>
+      </div>
+    </div>
+    \`;
+  }
+  
+  console.log('✅ Tareas cargadas:', tareas.length);
+  return html;
+}
+
+// Función para asignar una tarea (llama a Supabase)
+async function asignarTareaUI(tareaId) {
+  if (!currentUser) return;
+  
+  const responsableId = currentUser.rol === 'supervisor' ? null : currentUser.id;
+  const resultado = await asignarTarea(tareaId, responsableId);
+  
+  if (resultado) {
+    alert('Tarea asignada correctamente');
+    // Recargar tareas
+    await mostrarTareasProximoMes();
+  } else {
+    alert('Error asignando tarea');
+  }
+}
+
+// Hook para actualizar home cuando se carga la pantalla
+document.addEventListener('DOMContentLoaded', function() {
+  // Agregar observador para cuando la pantalla home se vuelve activa
+  const homeScreen = document.getElementById('s-home');
+  if (homeScreen) {
+    const observer = new MutationObserver(() => {
+      if (homeScreen.classList.contains('active')) {
+        actualizarHome();
+      }
+    });
+    observer.observe(homeScreen, { attributes: true });
+  }
+});
+
+console.log('✅ Funciones de tareas cargadas');
+
+</script>
+
 </head>
 <body>
 <div id="app">
@@ -378,23 +594,26 @@ html, body {
     <div class="login-sep"></div>
     <div class="login-users">
       <p style="font-size:11px;color:var(--muted);text-align:center;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Seleccioná tu usuario</p>
-      <div class="login-user" onclick="login('AS','Andrés Suárez','supervisor')">
+            <div class="login-user" onclick="validarLogin('asuarez@baluma.uy', 'asuarez'); goTo('s-home');">
         <div class="lu-av av-g">AS</div>
         <div class="lu-info"><div class="lu-name">Andrés Suárez</div><div class="lu-role">Supervisor de turno</div></div>
         <span class="lu-badge lb-s">Admin</span>
       </div>
-      <div class="login-user" onclick="login('CS','Cristina Screollini','tecnica')">
+      <div class="login-user" onclick="validarLogin('cscreollini@baluma.uy', 'cscreollini'); goTo('s-home');">
         <div class="lu-av av-s">CS</div>
         <div class="lu-info"><div class="lu-name">Cristina Screollini</div><div class="lu-role">Técnica Prevencionista</div></div>
         <span class="lu-badge lb-t">Técnica</span>
       </div>
-      <div class="login-user" onclick="login('AM','Andrés Mari','auxiliar')">
+      <div class="login-user" onclick="validarLogin('amari@baluma.uy', 'amari'); goTo('s-home');">
         <div class="lu-av av-b">AM</div>
         <div class="lu-info"><div class="lu-name">Andrés Mari</div><div class="lu-role">Auxiliar Inspector</div></div>
         <span class="lu-badge lb-a">Inspector</span>
       </div>
-      <div class="login-user" onclick="login('VP','Víctor Pintos','auxiliar')">
+      <div class="login-user" onclick="validarLogin('vpintos@baluma.uy', 'vpintos'); goTo('s-home');">
         <div class="lu-av av-b">VP</div>
+        <div class="lu-info"><div class="lu-name">Víctor Pintos</div><div class="lu-role">Auxiliar Inspector</div></div>
+        <span class="lu-badge lb-a">Inspector</span>
+      </div>
         <div class="lu-info"><div class="lu-name">Víctor Pintos</div><div class="lu-role">Auxiliar Inspector</div></div>
         <span class="lu-badge lb-a">Inspector</span>
       </div>
@@ -849,22 +1068,32 @@ let currentUser = { initials:'AS', role:'supervisor' };
 let navStack = [];
 let checkedCount = 0;
 
-function login(initials, name, role) {
-  currentUser = { initials, name, role };
-  document.getElementById('home-av').textContent = initials;
-  const b = document.getElementById('home-badge');
-  b.textContent = role==='supervisor'?'Admin':role==='tecnica'?'Técnica':'Inspector';
-  b.className = 'lu-badge '+(role==='supervisor'?'lb-s':role==='tecnica'?'lb-t':'lb-a');
-  const adminBtn = document.getElementById('btn-admin');
-  if(adminBtn) adminBtn.style.display = role==='supervisor'?'flex':'none';
-  const ntBtn = document.getElementById('btn-nueva-tarea');
-  if(ntBtn) ntBtn.style.display = role==='supervisor'?'block':'none';
-  const rf = document.getElementById('recom-field');
-  if(rf) rf.style.display = role==='tecnica'?'block':'none';
-  goTo('s-home'); navStack=[];
+async function login(email, password) {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Validando...';
+  
+  const user = await validarLogin(email, password);
+  
+  if (user) {
+    // Cargar tareas del próximo mes
+    await cargarTareasProximoMes();
+    // Cargar equipos
+    await cargarEquipos();
+    // Ir a home
+    goTo('s-home');
+  } else {
+    alert('Email o contraseña inválidos');
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
 }
 
-function logout() { navStack=[]; goTo('s-login'); }
+function logout() { 
+  currentUser = null; 
+  navStack = []; 
+  goTo('s-login'); 
+}
 
 function goTo(id) {
   const cur = document.querySelector('.screen.active');
