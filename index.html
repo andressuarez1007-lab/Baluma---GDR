@@ -577,28 +577,28 @@ async function cargarDatosIniciales() {
   await cargarEquipos();
 }
 
-// Cargar tareas del próximo mes
+// Cargar tareas
 async function cargarTareasProximoMes() {
   try {
-    const hoy = new Date();
-    const proximoMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
-    const proximoMesStr = proximoMes.toISOString().split('T')[0].substring(0, 7);
+    console.log('🔄 Cargando tareas...');
     
     const { data, error } = await supabase
       .from('tareas')
       .select('*')
-      .gte('fecha_apertura', proximoMesStr + '-01')
-      .lte('fecha_apertura', proximoMesStr + '-31')
-      .order('titulo');
+      .order('fecha_apertura')
+      .limit(50);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error Supabase:', error.message);
+      throw error;
+    }
     
     tareasProximoMes = data || [];
     console.log('✅ Tareas cargadas:', tareasProximoMes.length);
-    
     return tareasProximoMes;
   } catch (err) {
     console.error('Error cargando tareas:', err);
+    tareasProximoMes = [];
     return [];
   }
 }
@@ -677,11 +677,15 @@ function mostrarTareasEnHome() {
     console.log('No hay contenedor de tareas');
     return;
   }
-  
-  if (tareasProximoMes.length === 0) {
-    contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No hay tareas</p>';
-    return;
-  }
+
+  contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">⏳ Cargando...</p>';
+
+  // Cargar y mostrar
+  cargarTareasProximoMes().then(() => {
+    if (tareasProximoMes.length === 0) {
+      contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Sin datos</p>';
+      return;
+    }
   
   let html = '';
   for (const tarea of tareasProximoMes) {
