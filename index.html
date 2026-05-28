@@ -657,36 +657,71 @@ window.login = function(initials, name, role) {
 
 // Actualizar pantallas con datos reales
 function actualizarPantallasConDatos() {
-  if (tareasProximoMes.length > 0) {
-    mostrarTareasEnHome();
-  }
-  console.log('✅ Datos cargados en pantalla');
+  mostrarTareasEnHome();
+  mostrarExtintoresEnPantalla();
+  console.log('✅ Datos actualizados - ' + tareasProximoMes.length + ' tareas, ' + equiposActivos.length + ' equipos');
 }
 
-// Mostrar tareas en la pantalla de home (si existe elemento para ello)
+// Refrescar datos cada 30 segundos
+setInterval(() => {
+  cargarDatosIniciales().then(() => {
+    actualizarPantallasConDatos();
+  });
+}, 30000);
+
+// Mostrar tareas en pantalla de tareas
 function mostrarTareasEnHome() {
-  // Buscar elemento donde mostrar tareas
-  let contenedor = document.querySelector('[data-tareas]') || 
-                   document.querySelector('.tareas-list') ||
-                   document.getElementById('tareas-list');
+  let contenedor = document.getElementById('tareas-contenedor');
   
   if (!contenedor) {
-    console.log('ℹ️ No hay contenedor de tareas en la pantalla actual');
+    console.log('No hay contenedor de tareas');
+    return;
+  }
+  
+  if (tareasProximoMes.length === 0) {
+    contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No hay tareas</p>';
     return;
   }
   
   let html = '';
-  for (const tarea of tareasProximoMes.slice(0, 10)) {
+  for (const tarea of tareasProximoMes) {
     const colorRiesgo = tarea.nivel_criticidad === 'critico' ? 'c' :
                        tarea.nivel_criticidad === 'alto' ? 'a' :
                        tarea.nivel_criticidad === 'medio' ? 'm' : 'b';
     
-    html += \`
-      <div style="background: white; padding: 12px; margin: 8px 0; border-left: 4px solid var(--r\${colorRiesgo}); border-radius: 4px;">
-        <div style="font-weight: 600; font-size: 14px;">\${tarea.titulo}</div>
-        <div style="font-size: 12px; color: #999; margin-top: 5px;">\${tarea.fecha_apertura} | \${tarea.nivel_criticidad}</div>
-      </div>
-    \`;
+    const estado = tarea.responsable_id ? '✅ Asignada' : '⚠️ Sin asignar';
+    
+    html += '<div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid var(--r' + colorRiesgo + ');">';
+    html += '<div style="font-weight: 600; font-size: 15px;">' + tarea.titulo + '</div>';
+    html += '<div style="font-size: 12px; color: #999; margin-top: 8px;">📅 ' + tarea.fecha_apertura + ' | ' + estado + '</div>';
+    html += '<div style="margin-top: 10px;"><span style="display: inline-block; background: var(--r' + colorRiesgo + '); color: white; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;">' + tarea.nivel_criticidad.toUpperCase() + '</span></div>';
+    html += '</div>';
+  }
+  
+  contenedor.innerHTML = html;
+}
+
+// Mostrar extintores en pantalla
+function mostrarExtintoresEnPantalla() {
+  let contenedor = document.getElementById('extintores-contenedor');
+  
+  if (!contenedor) {
+    console.log('No hay contenedor de extintores');
+    return;
+  }
+  
+  if (equiposActivos.length === 0) {
+    contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No hay extintores cargados</p>';
+    return;
+  }
+  
+  let html = '';
+  for (const equipo of equiposActivos.slice(0, 20)) {
+    html += '<div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid var(--gold);">';
+    html += '<div style="font-weight: 600; font-size: 15px;">' + (equipo.nombre || equipo.codigo) + '</div>';
+    html += '<div style="font-size: 12px; color: #999; margin-top: 8px;">🏢 ' + (equipo.zona || 'Sin ubicación') + ' | ' + (equipo.nivel_riesgo || 'N/A') + '</div>';
+    html += '<div style="font-size: 12px; color: #666; margin-top: 5px;">MAT: ' + equipo.codigo + '</div>';
+    html += '</div>';
   }
   
   contenedor.innerHTML = html;
@@ -771,6 +806,8 @@ initSupabase();
       <div class="tablero-row" style="border-bottom:none;"><div class="tdot" style="background:var(--ra);"></div><div class="tablero-info"><div class="tablero-name">Compartimentación</div><div class="tablero-detail">Dampers: 48% con fallas mecánicas</div></div><span class="rb rb-a">Alto</span></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:9px;">
+      <button class="f-btn f-btn-secondary" onclick="goTo('s-tareas')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-list-check" aria-hidden="true"></i>Tareas</button>
+      <button class="f-btn f-btn-secondary" onclick="goTo('s-extintores')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-fire" aria-hidden="true"></i>Extintores</button>
       <button class="f-btn f-btn-secondary" onclick="goTo('s-qr')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-qrcode" aria-hidden="true"></i>Escanear</button>
       <button class="f-btn f-btn-secondary" onclick="goTo('s-pendientes')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-clock" aria-hidden="true"></i>Pendientes</button>
       <button class="f-btn f-btn-secondary" onclick="goTo('s-cronograma')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-calendar" aria-hidden="true"></i>Cronograma</button>
