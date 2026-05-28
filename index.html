@@ -366,189 +366,85 @@ html, body {
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ===== SUPABASE CONFIG =====
+// ===== SUPABASE =====
 const SUPABASE_URL = 'https://oeggvtvdizippgetrrih.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lZ2d2dHZkaXppcHBnZXRycmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODAxNTQsImV4cCI6MjA5NTU1NjE1NH0.O793npT8vuckYwHii9g3Seo8r3pXALIza5rb_yrKn0k';
 
-let supabase = null;
-let tareasProximoMes = [];
-let equiposActivos = [];
+let db = null;
+let tareasData = [];
+let equiposData = [];
 
-// Inicializar Supabase
-function initSupabase() {
-  if (typeof window.supabase !== 'undefined') {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('✅ Supabase inicializado');
-    cargarDatosIniciales();
-  } else {
-    setTimeout(initSupabase, 100);
-  }
+window.addEventListener('DOMContentLoaded', function() {
+  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  console.log('Supabase listo');
+});
+
+async function cargarTareas() {
+  if (!db) return [];
+  const { data, error } = await db.from('tareas').select('*').order('fecha_apertura').limit(100);
+  if (error) { console.error('Error tareas:', error.message); return []; }
+  tareasData = data || [];
+  console.log('Tareas:', tareasData.length);
+  return tareasData;
 }
 
-// Cargar tareas y equipos al iniciar
-async function cargarDatosIniciales() {
-  await cargarTareasProximoMes();
-  await cargarEquipos();
+async function cargarEquiposDB() {
+  if (!db) return [];
+  const { data, error } = await db.from('equipos').select('*').eq('estado', 'activo').order('nombre').limit(100);
+  if (error) { console.error('Error equipos:', error.message); return []; }
+  equiposData = data || [];
+  console.log('Equipos:', equiposData.length);
+  return equiposData;
 }
 
-// Cargar tareas
-async function cargarTareasProximoMes() {
-  try {
-    console.log('🔄 Cargando tareas...');
-    
-    const { data, error } = await supabase
-      .from('tareas')
-      .select('*')
-      .order('fecha_apertura')
-      .limit(50);
-    
-    if (error) {
-      console.error('Error Supabase:', error.message);
-      throw error;
-    }
-    
-    tareasProximoMes = data || [];
-    console.log('✅ Tareas cargadas:', tareasProximoMes.length);
-    return tareasProximoMes;
-  } catch (err) {
-    console.error('Error cargando tareas:', err);
-    tareasProximoMes = [];
-    return [];
-  }
-}
+function renderTareas() {
+  var el = document.getElementById('tareas-contenedor');
+  if (!el) return;
 
-// Cargar equipos (extintores)
-async function cargarEquipos() {
-  try {
-    const { data, error } = await supabase
-      .from('equipos')
-      .select('*')
-      .eq('estado', 'activo')
-      .order('nombre')
-      .limit(50);
-    
-    if (error) throw error;
-    
-    equiposActivos = data || [];
-    console.log('✅ Equipos cargados:', equiposActivos.length);
-    
-    return equiposActivos;
-  } catch (err) {
-    console.error('Error cargando equipos:', err);
-    return [];
-  }
-}
-
-// Actualizar asignación de tarea
-async function asignarTareaAUsuario(tareaId, responsableId) {
-  try {
-    const { error } = await supabase
-      .from('tareas')
-      .update({ responsable_id: responsableId })
-      .eq('id', tareaId);
-    
-    if (error) throw error;
-    
-    console.log('✅ Tarea asignada');
-    await cargarTareasProximoMes();
-    return true;
-  } catch (err) {
-    console.error('Error asignando tarea:', err);
-    return false;
-  }
-}
-
-// Hook para cuando se carga el login
-const originalLogin = window.login;
-window.login = function(initials, name, role) {
-  originalLogin(initials, name, role);
-  
-  // Al entrar al home, cargar datos
-  setTimeout(() => {
-    actualizarPantallasConDatos();
-  }, 500);
-};
-
-// Actualizar pantallas con datos reales
-function actualizarPantallasConDatos() {
-  mostrarTareasEnHome();
-  mostrarExtintoresEnPantalla();
-  console.log('✅ Datos actualizados - ' + tareasProximoMes.length + ' tareas, ' + equiposActivos.length + ' equipos');
-}
-
-// Refrescar datos cada 30 segundos
-setInterval(() => {
-  cargarDatosIniciales().then(() => {
-    actualizarPantallasConDatos();
-  });
-}, 30000);
-
-// Mostrar tareas en pantalla de tareas
-function mostrarTareasEnHome() {
-  let contenedor = document.getElementById('tareas-contenedor');
-  
-  if (!contenedor) {
-    console.log('No hay contenedor de tareas');
+  if (tareasData.length === 0) {
+    el.innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Sin tareas disponibles</p>';
     return;
   }
 
-  contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">⏳ Cargando...</p>';
-
-  // Cargar y mostrar
-  cargarTareasProximoMes().then(() => {
-    if (tareasProximoMes.length === 0) {
-      contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">Sin datos</p>';
-      return;
-    }
-  
-  let html = '';
-  for (const tarea of tareasProximoMes) {
-    const colorRiesgo = tarea.nivel_criticidad === 'critico' ? 'c' :
-                       tarea.nivel_criticidad === 'alto' ? 'a' :
-                       tarea.nivel_criticidad === 'medio' ? 'm' : 'b';
-    
-    const estado = tarea.responsable_id ? '✅ Asignada' : '⚠️ Sin asignar';
-    
-    html += '<div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid var(--r' + colorRiesgo + ');">';
-    html += '<div style="font-weight: 600; font-size: 15px;">' + tarea.titulo + '</div>';
-    html += '<div style="font-size: 12px; color: #999; margin-top: 8px;">📅 ' + tarea.fecha_apertura + ' | ' + estado + '</div>';
-    html += '<div style="margin-top: 10px;"><span style="display: inline-block; background: var(--r' + colorRiesgo + '); color: white; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;">' + tarea.nivel_criticidad.toUpperCase() + '</span></div>';
+  var html = '';
+  for (var i = 0; i < tareasData.length; i++) {
+    var t = tareasData[i];
+    var col = t.nivel_criticidad === 'critico' ? '#c0392b' :
+              t.nivel_criticidad === 'alto'    ? '#d35400' :
+              t.nivel_criticidad === 'medio'   ? '#b7950b' : '#1e8449';
+    var est = t.responsable_id ? '✅ Asignada' : '⚠️ Sin asignar';
+    html += '<div style="background:white;margin:10px 0;border-radius:8px;border-left:4px solid ' + col + ';padding:15px;">';
+    html += '<div style="font-weight:600;font-size:15px;font-family:'Cormorant Garamond',serif;">' + t.titulo + '</div>';
+    html += '<div style="font-size:12px;color:#8c8278;margin-top:6px;">' + t.fecha_apertura + ' &nbsp;·&nbsp; ' + est + '</div>';
+    html += '<div style="margin-top:8px;"><span style="background:' + col + ';color:white;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.5px;">' + (t.nivel_criticidad || 'N/A').toUpperCase() + '</span></div>';
     html += '</div>';
   }
-  
-  contenedor.innerHTML = html;
+  el.innerHTML = html;
 }
 
-// Mostrar extintores en pantalla
-function mostrarExtintoresEnPantalla() {
-  let contenedor = document.getElementById('extintores-contenedor');
-  
-  if (!contenedor) {
-    console.log('No hay contenedor de extintores');
+function renderEquipos() {
+  var el = document.getElementById('extintores-contenedor');
+  if (!el) return;
+
+  if (equiposData.length === 0) {
+    el.innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Sin extintores disponibles</p>';
     return;
   }
-  
-  if (equiposActivos.length === 0) {
-    contenedor.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No hay extintores cargados</p>';
-    return;
-  }
-  
-  let html = '';
-  for (const equipo of equiposActivos.slice(0, 20)) {
-    html += '<div style="background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid var(--gold);">';
-    html += '<div style="font-weight: 600; font-size: 15px;">' + (equipo.nombre || equipo.codigo) + '</div>';
-    html += '<div style="font-size: 12px; color: #999; margin-top: 8px;">🏢 ' + (equipo.zona || 'Sin ubicación') + ' | ' + (equipo.nivel_riesgo || 'N/A') + '</div>';
-    html += '<div style="font-size: 12px; color: #666; margin-top: 5px;">MAT: ' + equipo.codigo + '</div>';
+
+  var html = '';
+  for (var i = 0; i < equiposData.length; i++) {
+    var eq = equiposData[i];
+    html += '<div style="background:white;margin:10px 0;border-radius:8px;border-left:4px solid #b8965a;padding:15px;">';
+    html += '<div style="font-weight:600;font-size:14px;font-family:'Cormorant Garamond',serif;">MAT: ' + eq.codigo + ' &nbsp;|&nbsp; ' + (eq.nombre || '') + '</div>';
+    html += '<div style="font-size:12px;color:#8c8278;margin-top:6px;">📍 ' + (eq.zona || 'Sin zona') + '</div>';
+    if (eq.ultima_inspeccion) {
+      html += '<div style="font-size:12px;color:#8c8278;margin-top:4px;">🔧 Última: ' + eq.ultima_inspeccion + '</div>';
+    }
     html += '</div>';
   }
-  
-  contenedor.innerHTML = html;
+  el.innerHTML = html;
 }
-
-// Iniciar
-initSupabase();
 </script>
-
 </head>
 <body>
 <div id="app">
@@ -1103,14 +999,13 @@ function goTo(id) {
   const t = document.getElementById(id);
   if(t){ t.classList.add('active'); t.scrollTop=0; }
   
-  // Cargar datos cuando se abre pantallas específicas
-  setTimeout(() => {
-    if (id === 's-tareas' && typeof mostrarTareasEnHome === 'function') {
-      mostrarTareasEnHome();
-    } else if (id === 's-extintores' && typeof mostrarExtintoresEnPantalla === 'function') {
-      mostrarExtintoresEnPantalla();
-    }
-  }, 100);
+  if (id === 's-tareas') {
+    document.getElementById('tareas-contenedor').innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Cargando...</p>';
+    cargarTareas().then(renderTareas);
+  } else if (id === 's-extintores') {
+    document.getElementById('extintores-contenedor').innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Cargando...</p>';
+    cargarEquiposDB().then(renderEquipos);
+  }
 }
 
 function goBack() {
