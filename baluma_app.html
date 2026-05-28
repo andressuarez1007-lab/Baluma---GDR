@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Baluma GDR">
+<meta name="theme-color" content="#1a1612">
+<title>Baluma — Gestión de Riesgos</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@300;400;500&display=swap');
+
+:root {
+  --black: #1a1612;
+  --dark: #2c2820;
+  --mid: #5c5448;
+  --muted: #8c8278;
+  --cream: #f5f0e8;
+  --cream2: #ede8df;
+  --cream3: #d8d0c4;
+  --gold: #b8965a;
+  --gold2: #9a7a42;
+  --white: #faf8f4;
+  --rc: #c0392b;
+  --ra: #d35400;
+  --rm: #b7950b;
+  --rb: #1e8449;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Jost', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--black);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--black);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--black);
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+/* SCREENS */
+.screen {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  background: var(--cream);
+  position: absolute;
+  top: 0; left: 0;
+}
+.screen.active { display: flex; }
+
+/* HEADER */
+.f-header {
+  background: var(--black);
+  padding: 14px 18px 12px;
+  padding-top: max(14px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.f-header-brand { display: flex; flex-direction: column; gap: 1px; }
+.f-header-top { font-family: var(--font-serif); font-size: 20px; color: var(--gold); font-weight: 500; letter-spacing: 0.08em; line-height: 1; }
+.f-header-sub { font-size: 9px; color: var(--muted); letter-spacing: 0.22em; text-transform: uppercase; margin-top: 2px; }
+.f-avatar { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--gold2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: var(--gold); font-family: var(--font-serif); cursor: pointer; }
+
+/* NAV BAR */
+.f-nav {
+  background: var(--black);
+  padding: 11px 18px;
+  padding-top: max(11px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #2a2520;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.f-nav-back { background: none; border: none; cursor: pointer; color: var(--gold); font-size: 14px; display: flex; align-items: center; gap: 6px; font-family: var(--font-sans); padding: 6px 0; }
+.f-nav-title { font-family: var(--font-serif); font-size: 17px; color: var(--cream); font-weight: 400; letter-spacing: 0.05em; flex: 1; text-align: center; }
+.f-nav-action { font-size: 13px; color: var(--gold); background: none; border: none; cursor: pointer; font-family: var(--font-sans); padding: 6px 0; }
+
+/* CONTENT SCROLL */
+.f-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  background: var(--cream);
+}
+
+/* TAB BAR */
+.f-tabs {
+  background: var(--black);
+  border-top: 1px solid #2a2520;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 8px 0;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  flex-shrink: 0;
+  z-index: 10;
+}
+.f-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; padding: 5px 0; }
+.f-tab i { font-size: 22px; color: #4a453e; }
+.f-tab span { font-size: 9px; color: #4a453e; letter-spacing: 0.1em; text-transform: uppercase; }
+.f-tab.active i, .f-tab.active span { color: var(--gold); }
+
+/* CARDS */
+.f-card { background: var(--white); border: 1px solid var(--cream3); border-radius: 6px; padding: 14px 16px; }
+.f-card-dark { background: var(--dark); border: 1px solid #3a342c; border-radius: 6px; padding: 14px 16px; }
+
+/* SECTION LABEL */
+.f-section { font-size: 10px; font-weight: 500; color: var(--muted); letter-spacing: 0.2em; text-transform: uppercase; padding: 0 2px; margin-top: 4px; }
+
+/* STATS */
+.f-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.f-stat { background: var(--white); border: 1px solid var(--cream3); border-radius: 6px; padding: 13px 14px; }
+.f-stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+.f-stat-num { font-family: var(--font-serif); font-size: 30px; font-weight: 400; line-height: 1; }
+.f-stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* RISK COLORS */
+.n-c { color: var(--rc); }
+.n-a { color: var(--ra); }
+.n-m { color: var(--rm); }
+.n-b { color: var(--rb); }
+.n-g { color: var(--gold); }
+
+/* BADGES */
+.rb { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 3px; font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.rb-c { background: #fdf0ef; color: #922b21; border: 1px solid #f5c6c3; }
+.rb-a { background: #fef4ec; color: #a04000; border: 1px solid #f5cba7; }
+.rb-m { background: #fefde7; color: #9a7d0a; border: 1px solid #f9e79f; }
+.rb-b { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+.rb-p { background: #f0ebe3; color: #8c7a5a; border: 1px solid #d8d0c4; }
+
+/* STATUS DOTS */
+.sdot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.sd-c { background: var(--rc); }
+.sd-a { background: var(--ra); }
+.sd-m { background: var(--rm); }
+.sd-b { background: var(--rb); }
+.sd-ok { background: var(--rb); }
+.sd-nd { background: var(--cream3); }
+
+/* LIST ITEMS */
+.f-li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--cream2); cursor: pointer; }
+.f-li:last-child { border-bottom: none; padding-bottom: 0; }
+.f-li-icon { width: 40px; height: 40px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--cream2); }
+.f-li-icon i { font-size: 20px; color: var(--mid); }
+.f-li-info { flex: 1; min-width: 0; }
+.f-li-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f-li-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.f-li-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+
+/* ALERT BANNERS */
+.f-alert { display: flex; gap: 10px; padding: 12px 14px; border-radius: 5px; border-left: 3px solid var(--rc); background: #fdf0ef; }
+.f-alert i { color: var(--rc); font-size: 18px; margin-top: 1px; flex-shrink: 0; }
+.f-alert-text { font-size: 12px; color: #922b21; line-height: 1.5; }
+
+/* TABLERO SISTEMAS */
+.tablero-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--cream2); cursor: pointer; }
+.tablero-row:last-child { border-bottom: none; }
+.tdot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.tablero-info { flex: 1; }
+.tablero-name { font-size: 14px; font-weight: 500; }
+.tablero-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* BUTTONS */
+.f-btn { font-family: var(--font-sans); border-radius: 4px; cursor: pointer; letter-spacing: 0.08em; font-size: 13px; text-transform: uppercase; padding: 13px 20px; width: 100%; font-weight: 500; -webkit-appearance: none; }
+.f-btn-primary { background: var(--black); color: var(--gold); border: 1px solid var(--gold2); }
+.f-btn-secondary { background: transparent; color: var(--dark); border: 1px solid var(--cream3); }
+.f-btn-success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+.f-btn-danger { background: #fdf0ef; color: #922b21; border: 1px solid #f5c6c3; }
+.f-btn-sm { padding: 8px 14px; width: auto; font-size: 11px; }
+
+/* CHECKLIST */
+.f-check-row { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--cream2); }
+.f-check-row:last-child { border-bottom: none; }
+.f-checkbox { width: 24px; height: 24px; border: 1.5px solid var(--cream3); border-radius: 4px; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-top: 1px; background: var(--white); }
+.f-checkbox.checked { background: var(--black); border-color: var(--black); }
+.f-checkbox.checked i { color: var(--cream); font-size: 15px; }
+.f-check-label { flex: 1; }
+.f-check-text { font-size: 14px; line-height: 1.4; }
+.f-check-crit { font-size: 11px; color: var(--rc); margin-top: 2px; }
+.f-check-obs { margin-top: 8px; }
+.f-check-obs textarea { width: 100%; font-size: 13px; min-height: 58px; resize: none; border: 1px solid var(--cream3); border-radius: 4px; padding: 8px; background: var(--cream); font-family: var(--font-sans); color: var(--black); }
+
+/* SEVERITY */
+.f-sev-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.f-sev-btn { padding: 10px 4px; border-radius: 4px; font-size: 11px; text-align: center; cursor: pointer; border: 1px solid var(--cream3); background: var(--white); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; font-family: var(--font-sans); }
+.sev-ac-c { border-color: var(--rc); background: #fdf0ef; color: #922b21; }
+.sev-ac-a { border-color: var(--ra); background: #fef4ec; color: #a04000; }
+.sev-ac-m { border-color: var(--rm); background: #fefde7; color: #9a7d0a; }
+.sev-ac-b { border-color: var(--rb); background: #eafaf1; color: #1e8449; }
+
+/* PHOTOS */
+.f-photo-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.f-photo { width: 72px; height: 72px; border-radius: 5px; border: 1px solid var(--cream3); background: var(--cream2); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.f-photo i { font-size: 24px; color: var(--muted); }
+.f-photo.filled { background: var(--cream3); }
+.f-photo.filled i { color: var(--mid); }
+.f-photo.add { border-style: dashed; }
+
+/* QR */
+.qr-frame { width: 100%; aspect-ratio: 1; background: var(--black); border-radius: 6px; border: 1px solid #2a2520; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.qr-corner { position: absolute; width: 26px; height: 26px; border-color: var(--gold); border-style: solid; }
+.qrc-tl { top: 18px; left: 18px; border-width: 2px 0 0 2px; }
+.qrc-tr { top: 18px; right: 18px; border-width: 2px 2px 0 0; }
+.qrc-bl { bottom: 18px; left: 18px; border-width: 0 0 2px 2px; }
+.qrc-br { bottom: 18px; right: 18px; border-width: 0 2px 2px 0; }
+.scan-line { position: absolute; left: 18px; right: 18px; height: 1px; background: var(--gold); opacity: 0.8; animation: scan 2s ease-in-out infinite; }
+@keyframes scan { 0%,100%{top:20%} 50%{top:76%} }
+
+/* TASK CARDS */
+.tarea-card { background: var(--white); border: 1px solid var(--cream3); border-radius: 6px; overflow: hidden; cursor: pointer; }
+.tarea-barra { height: 3px; }
+.tarea-inner { padding: 13px 15px; }
+.tarea-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tarea-nombre { font-size: 14px; font-weight: 500; line-height: 1.3; flex: 1; }
+.tarea-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+.tarea-meta span { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.tarea-bottom { display: flex; align-items: center; gap: 8px; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--cream2); }
+.prog-wrap { flex: 1; height: 4px; background: var(--cream2); border-radius: 2px; overflow: hidden; }
+.prog-bar { height: 100%; border-radius: 2px; }
+.tarea-bottom span { font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+/* CRONOGRAMA */
+.task-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--cream2); }
+.task-row:last-child { border-bottom: none; }
+.task-bar { width: 3px; height: 38px; border-radius: 2px; flex-shrink: 0; }
+.task-info { flex: 1; min-width: 0; }
+.task-name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.task-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+
+/* INPUT / FORM */
+.f-input { width: 100%; border: 1px solid var(--cream3); border-radius: 4px; padding: 11px 13px; font-family: var(--font-sans); font-size: 14px; background: var(--white); color: var(--black); -webkit-appearance: none; }
+.f-input:focus { outline: none; border-color: var(--gold); }
+.f-label { font-size: 10px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px; display: block; }
+
+/* REPORT HEADER */
+.rep-header { background: var(--black); border-radius: 6px; padding: 16px; }
+.rep-title { font-family: var(--font-serif); font-size: 22px; color: var(--cream); font-weight: 400; margin-top: 4px; }
+.rep-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 3px; }
+.rep-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.rep-kpi { background: #252017; border-radius: 3px; padding: 10px 6px; text-align: center; }
+.rep-kpi-num { font-family: var(--font-serif); font-size: 22px; line-height: 1; }
+.rep-kpi-lbl { font-size: 9px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+
+/* FIRMA */
+.firma-box { display: flex; flex-direction: column; align-items: flex-start; }
+.firma-label { font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+.firma-line { width: 100%; height: 1px; background: var(--cream3); margin: 14px 0 4px; }
+.firma-name { font-family: var(--font-serif); font-size: 14px; }
+.firma-cargo { font-size: 11px; color: var(--muted); }
+
+/* PERM TOGGLE */
+.perm-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--cream2); }
+.perm-row:last-child { border-bottom: none; }
+.perm-label { font-size: 14px; }
+.toggle { width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; position: relative; flex-shrink: 0; transition: background 0.2s; }
+.toggle.on { background: var(--black); }
+.toggle.off { background: var(--cream3); }
+.toggle-dot { position: absolute; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); transition: left 0.15s; }
+.toggle.on .toggle-dot { left: 21px; }
+.toggle.off .toggle-dot { left: 3px; }
+
+/* FILTROS */
+.filtros { display: flex; gap: 7px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; }
+.filtros::-webkit-scrollbar { display: none; }
+.filtro { font-size: 11px; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--cream3); background: var(--white); color: var(--muted); cursor: pointer; white-space: nowrap; font-family: var(--font-sans); }
+.filtro.active { background: var(--black); color: var(--gold); border-color: var(--gold2); }
+
+/* RECOMENDACION */
+.recom-block { background: var(--white); border: 1px solid var(--cream3); border-left: 3px solid var(--gold); border-radius: 0 5px 5px 0; padding: 14px 15px; }
+.recom-header { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.recom-av { width: 30px; height: 30px; border-radius: 50%; background: #1e1e20; border: 1px solid #4a4a5a; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: #a0a0b0; font-family: var(--font-serif); flex-shrink: 0; }
+.recom-nombre { font-size: 13px; font-weight: 500; }
+.recom-cargo { font-size: 11px; color: var(--muted); }
+.recom-texto { font-size: 13px; color: var(--mid); line-height: 1.6; font-style: italic; font-family: var(--font-serif); }
+.alerta-urgente { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; color: #922b21; background: #fdf0ef; border: 1px solid #f5c6c3; border-radius: 3px; padding: 4px 9px; margin-top: 9px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* OBS ITEMS */
+.obs-item { background: var(--cream); border-radius: 4px; padding: 10px 12px; margin-bottom: 8px; border-left: 3px solid transparent; }
+.obs-c { border-left-color: var(--rc); }
+.obs-a { border-left-color: var(--ra); }
+.obs-m { border-left-color: var(--rm); }
+.obs-titulo { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+.obs-texto { font-size: 12px; color: var(--mid); line-height: 1.5; }
+.obs-meta { font-size: 10px; color: var(--muted); margin-top: 5px; display: flex; align-items: center; gap: 6px; }
+
+/* FOTOS GRID */
+.fotos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.foto-th { aspect-ratio: 1; border-radius: 5px; background: var(--cream2); border: 1px solid var(--cream3); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; position: relative; overflow: hidden; }
+.foto-th i { font-size: 24px; color: var(--muted); }
+.foto-th.filled { background: var(--cream3); }
+.foto-th.filled i { color: var(--mid); }
+.foto-th.dashed { border-style: dashed; }
+.foto-lbl { font-size: 9px; color: var(--muted); text-align: center; padding: 0 4px; }
+.foto-badge { position: absolute; top: 4px; right: 4px; font-size: 8px; padding: 1px 5px; border-radius: 2px; }
+
+/* TIMELINE */
+.tl { display: flex; flex-direction: column; }
+.tl-item { display: flex; gap: 12px; padding: 10px 0; }
+.tl-left { display: flex; flex-direction: column; align-items: center; width: 22px; flex-shrink: 0; }
+.tl-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.tl-line { width: 1px; flex: 1; background: var(--cream3); margin-top: 2px; }
+.tl-content { flex: 1; padding-bottom: 8px; }
+.tl-fecha { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+.tl-evento { font-size: 14px; font-weight: 500; }
+.tl-desc { font-size: 12px; color: var(--mid); margin-top: 3px; line-height: 1.5; }
+.tl-autor { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* LOGIN */
+.login-wrap { flex: 1; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 28px; gap: 28px; }
+.login-mark { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.login-icon { width: 60px; height: 60px; border-radius: 50%; border: 1px solid var(--gold2); display: flex; align-items: center; justify-content: center; }
+.login-icon i { font-size: 28px; color: var(--gold); }
+.login-h1 { font-family: var(--font-serif); font-size: 28px; color: var(--cream); font-weight: 400; letter-spacing: 0.1em; }
+.login-p { font-size: 10px; color: var(--muted); letter-spacing: 0.22em; text-transform: uppercase; text-align: center; }
+.login-sep { width: 40px; height: 1px; background: var(--gold); opacity: 0.35; }
+.login-users { width: 100%; display: flex; flex-direction: column; gap: 9px; }
+.login-user { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid #2a2520; border-radius: 5px; cursor: pointer; background: #1f1c18; }
+.login-user:active { background: #252017; border-color: var(--gold2); }
+.lu-av { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-serif); font-size: 14px; font-weight: 500; flex-shrink: 0; }
+.av-g { background: #2a2210; color: var(--gold); border: 1px solid var(--gold2); }
+.av-s { background: #1e1e20; color: #a0a0b0; border: 1px solid #4a4a5a; }
+.av-b { background: #22200e; color: #c8a84a; border: 1px solid #6a5a20; }
+.lu-info { flex: 1; }
+.lu-name { font-size: 14px; color: var(--cream); }
+.lu-role { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 2px; }
+.lu-badge { font-size: 9px; padding: 3px 9px; border-radius: 2px; letter-spacing: 0.1em; text-transform: uppercase; }
+.lb-s { background: #2a2210; color: var(--gold); border: 1px solid var(--gold2); }
+.lb-t { background: #1a1e2a; color: #7090c0; border: 1px solid #304060; }
+.lb-a { background: #1a2218; color: #609060; border: 1px solid #304030; }
+
+/* EQUIPO DETAIL */
+.eq-prop { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--cream2); font-size: 14px; }
+.eq-prop:last-child { border-bottom: none; }
+.eq-prop-label { color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── LOGIN ── -->
+<div id="s-login" class="screen active">
+  <div class="login-wrap">
+    <div class="login-mark">
+      <div class="login-icon"><i class="ti ti-shield-check" aria-hidden="true"></i></div>
+      <div class="login-h1">Baluma</div>
+      <div class="login-p">Fasano Península · Gestión de Riesgos</div>
+    </div>
+    <div class="login-sep"></div>
+    <div class="login-users">
+      <p style="font-size:11px;color:var(--muted);text-align:center;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Seleccioná tu usuario</p>
+      <div class="login-user" onclick="login('AS','Andrés Suárez','supervisor')">
+        <div class="lu-av av-g">AS</div>
+        <div class="lu-info"><div class="lu-name">Andrés Suárez</div><div class="lu-role">Supervisor de turno</div></div>
+        <span class="lu-badge lb-s">Admin</span>
+      </div>
+      <div class="login-user" onclick="login('CS','Cristina Screollini','tecnica')">
+        <div class="lu-av av-s">CS</div>
+        <div class="lu-info"><div class="lu-name">Cristina Screollini</div><div class="lu-role">Técnica Prevencionista</div></div>
+        <span class="lu-badge lb-t">Técnica</span>
+      </div>
+      <div class="login-user" onclick="login('AM','Andrés Mari','auxiliar')">
+        <div class="lu-av av-b">AM</div>
+        <div class="lu-info"><div class="lu-name">Andrés Mari</div><div class="lu-role">Auxiliar Inspector</div></div>
+        <span class="lu-badge lb-a">Inspector</span>
+      </div>
+      <div class="login-user" onclick="login('VP','Víctor Pintos','auxiliar')">
+        <div class="lu-av av-b">VP</div>
+        <div class="lu-info"><div class="lu-name">Víctor Pintos</div><div class="lu-role">Auxiliar Inspector</div></div>
+        <span class="lu-badge lb-a">Inspector</span>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#3a3530;letter-spacing:0.1em;text-align:center;">@baluma.uy · v1.0 MVP</div>
+  </div>
+</div>
+
+<!-- ── HOME ── -->
+<div id="s-home" class="screen">
+  <div class="f-header">
+    <div class="f-header-brand">
+      <div class="f-header-top">Baluma</div>
+      <div class="f-header-sub">Fasano Península · Riesgos</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="home-badge" class="lu-badge lb-s">Admin</span>
+      <div class="f-avatar" id="home-av">AS</div>
+      <button style="background:none;border:none;cursor:pointer;padding:4px;" onclick="logout()" aria-label="Salir"><i class="ti ti-logout" style="font-size:20px;color:#4a453e;"></i></button>
+    </div>
+  </div>
+  <div class="f-content">
+    <div class="f-alert">
+      <i class="ti ti-alert-octagon" aria-hidden="true"></i>
+      <div class="f-alert-text">1 inspección crítica vencida — incumplimiento registrado. Acción requerida.</div>
+    </div>
+    <div class="f-stats">
+      <div class="f-stat"><div class="f-stat-label">Inspecciones hoy</div><div class="f-stat-num n-g">8</div><div class="f-stat-sub">6 realizadas · 2 pendientes</div></div>
+      <div class="f-stat"><div class="f-stat-label">Cumplimiento</div><div class="f-stat-num n-b">91%</div><div class="f-stat-sub">Meta: 95%</div></div>
+      <div class="f-stat"><div class="f-stat-label">Hallazgos abiertos</div><div class="f-stat-num n-a">5</div><div class="f-stat-sub">2 críticos sin cerrar</div></div>
+      <div class="f-stat"><div class="f-stat-label">Riesgo global</div><div class="f-stat-num n-m" style="font-size:22px;margin-top:4px;">Medio</div><div class="f-stat-sub">Sistemas 2026</div></div>
+    </div>
+    <div class="f-section">Tablero de sistemas</div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="tablero-row"><div class="tdot" style="background:var(--rm);"></div><div class="tablero-info"><div class="tablero-name">Detección</div><div class="tablero-detail">64 pendientes · Central operativa</div></div><span class="rb rb-m">Medio</span></div>
+      <div class="tablero-row"><div class="tdot" style="background:var(--rm);"></div><div class="tablero-info"><div class="tablero-name">Extinción</div><div class="tablero-detail">FM200 restituido · Bocas en proceso</div></div><span class="rb rb-m">Medio</span></div>
+      <div class="tablero-row"><div class="tdot" style="background:var(--ra);"></div><div class="tablero-info"><div class="tablero-name">Evacuación</div><div class="tablero-detail">Aviso sonoro · Ramales I5 e I9 en falla</div></div><span class="rb rb-a">Alto</span></div>
+      <div class="tablero-row" style="border-bottom:none;"><div class="tdot" style="background:var(--ra);"></div><div class="tablero-info"><div class="tablero-name">Compartimentación</div><div class="tablero-detail">Dampers: 48% con fallas mecánicas</div></div><span class="rb rb-a">Alto</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:9px;">
+      <button class="f-btn f-btn-secondary" onclick="goTo('s-qr')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-qrcode" aria-hidden="true"></i>Escanear</button>
+      <button class="f-btn f-btn-secondary" onclick="goTo('s-pendientes')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-clock" aria-hidden="true"></i>Pendientes</button>
+      <button class="f-btn f-btn-secondary" onclick="goTo('s-cronograma')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-calendar" aria-hidden="true"></i>Cronograma</button>
+      <button class="f-btn f-btn-secondary" id="btn-admin" onclick="goTo('s-admin')" style="display:flex;align-items:center;justify-content:center;gap:7px;"><i class="ti ti-settings" aria-hidden="true"></i>Admin</button>
+    </div>
+  </div>
+  <div class="f-tabs">
+    <button class="f-tab active" onclick="tabNav('home')"><i class="ti ti-home" aria-hidden="true"></i><span>Inicio</span></button>
+    <button class="f-tab" onclick="tabNav('qr')"><i class="ti ti-qrcode" aria-hidden="true"></i><span>Escanear</span></button>
+    <button class="f-tab" onclick="tabNav('pendientes')"><i class="ti ti-clock" aria-hidden="true"></i><span>Pendientes</span></button>
+    <button class="f-tab" onclick="tabNav('report')"><i class="ti ti-chart-bar" aria-hidden="true"></i><span>Informes</span></button>
+  </div>
+</div>
+
+<!-- ── QR ── -->
+<div id="s-qr" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goTo('s-home')"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Escanear equipo</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="f-content">
+    <div class="qr-frame">
+      <div class="qr-corner qrc-tl"></div><div class="qr-corner qrc-tr"></div>
+      <div class="qr-corner qrc-bl"></div><div class="qr-corner qrc-br"></div>
+      <div class="scan-line"></div>
+      <i class="ti ti-qrcode" style="font-size:52px;color:#2a2520;position:relative;z-index:1;" aria-hidden="true"></i>
+    </div>
+    <p style="font-size:11px;color:var(--muted);text-align:center;letter-spacing:0.1em;text-transform:uppercase;">Apuntá la cámara al código QR del equipo</p>
+    <button class="f-btn f-btn-primary" onclick="simulateScan()">Simular escaneo — demo</button>
+    <div class="f-section">Búsqueda por zona</div>
+    <select class="f-input"><option value="">Todas las zonas</option><option>Lobby principal</option><option>Casino</option><option>El Shopping</option><option>Torre — pisos</option><option>Cocina</option><option>Área técnica</option><option>Exterior</option></select>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="f-li" onclick="goTo('s-equipo')"><div class="f-li-icon"><i class="ti ti-fire-extinguisher" aria-hidden="true"></i></div><div class="f-li-info"><div class="f-li-title">EXT-001 · Extintor CO₂</div><div class="f-li-sub">Lobby principal</div></div><div class="f-li-right"><span class="rb rb-b" style="font-size:9px;">Bajo</span></div></div>
+      <div class="f-li" onclick="goTo('s-equipo')"><div class="f-li-icon"><i class="ti ti-bell" aria-hidden="true"></i></div><div class="f-li-info"><div class="f-li-title">DET-047 · Detector iónico</div><div class="f-li-sub">Casino — sector mesas</div></div><div class="f-li-right"><span class="rb rb-m" style="font-size:9px;">Medio</span></div></div>
+      <div class="f-li" onclick="goTo('s-equipo')"><div class="f-li-icon"><i class="ti ti-wind" aria-hidden="true"></i></div><div class="f-li-info"><div class="f-li-title">DMP-031 · Damper cortafuego</div><div class="f-li-sub">Área técnica</div></div><div class="f-li-right"><span class="rb rb-c" style="font-size:9px;">Crítico</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── EQUIPO ── -->
+<div id="s-equipo" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goBack()"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">EXT-001</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="f-content">
+    <div class="f-card-dark">
+      <div style="display:flex;align-items:center;gap:13px;margin-bottom:14px;">
+        <div style="width:50px;height:50px;border-radius:5px;background:#2a2520;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><i class="ti ti-fire-extinguisher" style="font-size:26px;color:var(--gold);" aria-hidden="true"></i></div>
+        <div><div style="font-family:var(--font-serif);font-size:20px;color:var(--cream);">Extintor CO₂</div><div style="font-size:10px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">EXT-001 · Lobby principal</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+        <div style="background:#252017;border-radius:4px;padding:10px;"><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">Estado</div><div style="font-size:14px;color:#639922;margin-top:4px;">Operativo</div></div>
+        <div style="background:#252017;border-radius:4px;padding:10px;"><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">Última insp.</div><div style="font-size:14px;color:var(--cream);margin-top:4px;">23/05/2026</div></div>
+      </div>
+    </div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="eq-prop"><span class="eq-prop-label">Categoría</span><span>Extinción</span></div>
+      <div class="eq-prop"><span class="eq-prop-label">Nivel de riesgo</span><span class="rb rb-b">Bajo</span></div>
+      <div class="eq-prop"><span class="eq-prop-label">Frecuencia</span><span>Mensual</span></div>
+      <div class="eq-prop"><span class="eq-prop-label">Próxima insp.</span><span style="color:var(--rm);">30/05/2026</span></div>
+      <div class="eq-prop"><span class="eq-prop-label">Responsable</span><span>Víctor Pintos</span></div>
+    </div>
+    <button class="f-btn f-btn-primary" onclick="goTo('s-inspect')">Iniciar inspección</button>
+  </div>
+</div>
+
+<!-- ── CHECKLIST ── -->
+<div id="s-inspect" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goBack()"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Inspección</div>
+    <div id="ck-counter" style="font-size:12px;color:var(--muted);">0/4</div>
+  </div>
+  <div class="f-content">
+    <div style="background:var(--black);border-radius:5px;padding:13px 15px;">
+      <div style="font-family:var(--font-serif);font-size:17px;color:var(--cream);">EXT-001 · Extintor CO₂</div>
+      <div style="font-size:10px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">Lobby principal · Extinción</div>
+      <div style="margin-top:10px;display:flex;gap:7px;align-items:center;"><span class="rb rb-b">Riesgo bajo</span><span style="font-size:10px;color:var(--muted);">Frecuencia mensual</span></div>
+    </div>
+    <div class="f-card" style="padding:0 16px 8px;">
+      <div class="f-check-row"><div class="f-checkbox" id="cb1" onclick="toggleCheck('cb1')"><i class="ti ti-check" aria-hidden="true"></i></div><div class="f-check-label"><div class="f-check-text">Precinto de seguridad intacto</div><div class="f-check-crit">Ítem crítico</div><div class="f-check-obs"><textarea placeholder="Observación..."></textarea></div></div></div>
+      <div class="f-check-row"><div class="f-checkbox" id="cb2" onclick="toggleCheck('cb2')"><i class="ti ti-check" aria-hidden="true"></i></div><div class="f-check-label"><div class="f-check-text">Manómetro en zona verde</div><div class="f-check-crit">Ítem crítico</div><div class="f-check-obs"><textarea placeholder="Observación..."></textarea></div></div></div>
+      <div class="f-check-row"><div class="f-checkbox" id="cb3" onclick="toggleCheck('cb3')"><i class="ti ti-check" aria-hidden="true"></i></div><div class="f-check-label"><div class="f-check-text">Acceso libre — sin obstáculos</div><div class="f-check-obs"><textarea placeholder="Observación..."></textarea></div></div></div>
+      <div class="f-check-row"><div class="f-checkbox" id="cb4" onclick="toggleCheck('cb4')"><i class="ti ti-check" aria-hidden="true"></i></div><div class="f-check-label"><div class="f-check-text">Señalización visible y legible</div><div class="f-check-obs"><textarea placeholder="Observación..."></textarea></div></div></div>
+    </div>
+    <div class="f-section">Nivel de hallazgo</div>
+    <div class="f-sev-row">
+      <div class="f-sev-btn" id="sv-c" onclick="setSev('c')">Crítico</div>
+      <div class="f-sev-btn" id="sv-a" onclick="setSev('a')">Alto</div>
+      <div class="f-sev-btn" id="sv-m" onclick="setSev('m')">Medio</div>
+      <div class="f-sev-btn" id="sv-b" onclick="setSev('b')">Bajo</div>
+    </div>
+    <div id="recom-field" style="display:none;">
+      <div class="f-section">Recomendación técnica</div>
+      <div class="f-card"><textarea class="f-input" placeholder="Agregar recomendación técnica de la prevencionista..." style="min-height:70px;border:none;padding:0;background:transparent;resize:none;"></textarea></div>
+    </div>
+    <div class="f-section">Fotografías</div>
+    <div class="f-photo-row" id="photo-row">
+      <div class="f-photo add" onclick="addPhoto()"><i class="ti ti-camera-plus" aria-hidden="true"></i></div>
+    </div>
+    <button class="f-btn f-btn-primary" onclick="goTo('s-rep-preview')">Generar vista previa</button>
+    <button class="f-btn f-btn-secondary" style="margin-top:0;" onclick="goBack()">Guardar borrador</button>
+  </div>
+</div>
+
+<!-- ── INFORME PREVIEW ── -->
+<div id="s-rep-preview" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goBack()"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Vista previa</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="f-content">
+    <div class="rep-header">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:0.2em;text-transform:uppercase;">Baluma · Fasano Península</div>
+      <div class="rep-title">Informe de inspección</div>
+      <div class="rep-sub">EXT-001 · Extintor CO₂ · 28/05/2026</div>
+      <div class="rep-kpis">
+        <div class="rep-kpi"><div class="rep-kpi-num n-b">4/4</div><div class="rep-kpi-lbl">Ítems OK</div></div>
+        <div class="rep-kpi"><div class="rep-kpi-num n-m">1</div><div class="rep-kpi-lbl">Obs.</div></div>
+        <div class="rep-kpi"><div class="rep-kpi-num n-c">0</div><div class="rep-kpi-lbl">Críticos</div></div>
+        <div class="rep-kpi"><div class="rep-kpi-num n-g">2</div><div class="rep-kpi-lbl">Fotos</div></div>
+      </div>
+    </div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="f-li"><div class="sdot sd-ok"></div><div class="f-li-info"><div class="f-li-title">Precinto intacto</div><div class="f-li-sub">Sin observaciones</div></div></div>
+      <div class="f-li"><div class="sdot sd-ok"></div><div class="f-li-info"><div class="f-li-title">Manómetro zona verde</div><div class="f-li-sub">Sin observaciones</div></div></div>
+      <div class="f-li"><div class="sdot sd-m"></div><div class="f-li-info"><div class="f-li-title">Acceso libre</div><div class="f-li-sub">Obs: paleta apoyada frente al equipo</div></div></div>
+      <div class="f-li"><div class="sdot sd-ok"></div><div class="f-li-info"><div class="f-li-title">Señalización visible</div><div class="f-li-sub">Sin observaciones</div></div></div>
+    </div>
+    <div class="f-section">Campos de firma</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+      <div class="firma-box"><div class="firma-label">Inspector</div><div class="firma-line"></div><div class="firma-name">Víctor Pintos</div><div class="firma-cargo">Auxiliar Inspector</div></div>
+      <div class="firma-box"><div class="firma-label">Supervisión</div><div class="firma-line"></div><div class="firma-name">Andrés Suárez</div><div class="firma-cargo">Supervisor · Jefe turno</div></div>
+    </div>
+    <div class="f-card" style="background:var(--cream2);border:none;">
+      <div class="f-label" style="margin-bottom:6px;">Recomendación técnica · Cristina Screollini</div>
+      <div style="font-size:13px;color:var(--mid);font-style:italic;font-family:var(--font-serif);">Sin recomendaciones adicionales para esta inspección.</div>
+    </div>
+    <button class="f-btn f-btn-primary" onclick="sendReport()" style="display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-mail" aria-hidden="true"></i>Enviar informe</button>
+    <button class="f-btn f-btn-secondary" style="margin-top:0;display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-file-type-pdf" aria-hidden="true"></i>Exportar PDF</button>
+    <button class="f-btn f-btn-secondary" style="margin-top:0;" onclick="goTo('s-home')">Confirmar y cerrar</button>
+  </div>
+</div>
+
+<!-- ── PENDIENTES ── -->
+<div id="s-pendientes" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goTo('s-home')"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Tareas pendientes</div>
+    <div style="font-size:12px;color:var(--muted);">6 abiertas</div>
+  </div>
+  <div class="f-content">
+    <div class="filtros">
+      <div class="filtro active" onclick="setFiltro(this)">Todas</div>
+      <div class="filtro" onclick="setFiltro(this)">Crítico</div>
+      <div class="filtro" onclick="setFiltro(this)">Alto</div>
+      <div class="filtro" onclick="setFiltro(this)">Con recomendación</div>
+    </div>
+    <div class="f-section">Requieren acción inmediata</div>
+    <div class="tarea-card" onclick="goTo('s-tarea')">
+      <div class="tarea-barra" style="background:var(--rc);"></div>
+      <div class="tarea-inner">
+        <div class="tarea-top"><div class="tarea-nombre">Dampers cortafuego — Área técnica</div><span class="rb rb-c">Crítico</span></div>
+        <div class="tarea-meta"><span><i class="ti ti-calendar" style="font-size:12px;" aria-hidden="true"></i> 15/05/2026</span><span><i class="ti ti-user" style="font-size:12px;" aria-hidden="true"></i> Andrés Mari</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:7px;line-height:1.4;">3 de 8 ítems. Recomendación de Cristina pendiente. 2 fotos cargadas.</div>
+        <div class="tarea-bottom"><div class="prog-wrap"><div class="prog-bar" style="width:37%;background:var(--rc);"></div></div><span>37% · 13 días</span></div>
+      </div>
+    </div>
+    <div class="tarea-card" onclick="goTo('s-tarea')">
+      <div class="tarea-barra" style="background:var(--ra);"></div>
+      <div class="tarea-inner">
+        <div class="tarea-top"><div class="tarea-nombre">FM200 — Sala contingencias</div><span class="rb rb-a">Alto</span></div>
+        <div class="tarea-meta"><span><i class="ti ti-calendar" style="font-size:12px;" aria-hidden="true"></i> 20/05/2026</span><span><i class="ti ti-user" style="font-size:12px;" aria-hidden="true"></i> Víctor Pintos</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:7px;line-height:1.4;">Tobera difusora sin ajustar. Sala técnica sin cobertura presupuestaria.</div>
+        <div class="tarea-bottom"><div class="prog-wrap"><div class="prog-bar" style="width:60%;background:var(--ra);"></div></div><span>60% · 8 días</span></div>
+      </div>
+    </div>
+    <div class="f-section" style="margin-top:4px;">En seguimiento</div>
+    <div class="tarea-card" onclick="goTo('s-tarea')">
+      <div class="tarea-barra" style="background:var(--ra);"></div>
+      <div class="tarea-inner">
+        <div class="tarea-top"><div class="tarea-nombre">Aviso sonoro — Ramales I5 e I9</div><span class="rb rb-a">Alto</span></div>
+        <div class="tarea-meta"><span><i class="ti ti-calendar" style="font-size:12px;" aria-hidden="true"></i> 02/05/2026</span><span><i class="ti ti-user" style="font-size:12px;" aria-hidden="true"></i> Andrés Mari</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:7px;line-height:1.4;">Presupuesto aprobado. Pendiente de ejecución Securitas.</div>
+        <div class="tarea-bottom"><div class="prog-wrap"><div class="prog-bar" style="width:25%;background:var(--ra);"></div></div><span>25% · 26 días</span></div>
+      </div>
+    </div>
+    <div class="tarea-card" onclick="goTo('s-tarea')">
+      <div class="tarea-barra" style="background:var(--rm);"></div>
+      <div class="tarea-inner">
+        <div class="tarea-top"><div class="tarea-nombre">Puertas cortafuego — Ala este P4</div><span class="rb rb-m">Medio</span></div>
+        <div class="tarea-meta"><span><i class="ti ti-calendar" style="font-size:12px;" aria-hidden="true"></i> 10/05/2026</span><span><i class="ti ti-user" style="font-size:12px;" aria-hidden="true"></i> Víctor Pintos</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:7px;line-height:1.4;">Bisagra con desgaste severo. Cierre incompleto. Espera repuesto.</div>
+        <div class="tarea-bottom"><div class="prog-wrap"><div class="prog-bar" style="width:50%;background:var(--rm);"></div></div><span>50% · 18 días</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DETALLE TAREA ── -->
+<div id="s-tarea" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goTo('s-pendientes')"><i class="ti ti-arrow-left" aria-hidden="true"></i>Pendientes</button>
+    <div class="f-nav-title">Tarea abierta</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="f-content" style="padding:0;gap:0;">
+    <div style="background:var(--black);padding:16px;flex-shrink:0;">
+      <div style="font-size:9px;color:#6a6258;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">Compartimentación · DMP-031–038</div>
+      <div style="font-family:var(--font-serif);font-size:22px;color:var(--cream);font-weight:400;line-height:1.2;">Dampers cortafuego<br>Área técnica</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;"><span class="rb rb-c">Crítico</span><span class="rb rb-p">En curso</span></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">
+        <div style="background:#252017;border-radius:3px;padding:10px;text-align:center;"><div style="font-family:var(--font-serif);font-size:22px;color:var(--rc);">3/8</div><div style="font-size:9px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px;">Ítems OK</div></div>
+        <div style="background:#252017;border-radius:3px;padding:10px;text-align:center;"><div style="font-family:var(--font-serif);font-size:22px;color:var(--rm);">2</div><div style="font-size:9px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px;">Obs. abiertas</div></div>
+        <div style="background:#252017;border-radius:3px;padding:10px;text-align:center;"><div style="font-family:var(--font-serif);font-size:22px;color:var(--gold);">13</div><div style="font-size:9px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:3px;">Días abierta</div></div>
+      </div>
+    </div>
+    <div style="padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;">
+      <div>
+        <div class="f-section">Recomendación técnica</div>
+        <div style="margin-top:8px;" class="recom-block">
+          <div class="recom-header"><div class="recom-av">CS</div><div><div class="recom-nombre">Cristina Screollini</div><div class="recom-cargo">Técnica Prevencionista · 18/05/2026</div></div></div>
+          <div class="recom-texto">"Falla mecánica en 5 motores del sector. Riesgo de pérdida de estanqueidad en control de humo. Intervención técnica antes del 30/05 — solicitar presupuesto a DOMOTEC o empresa alternativa."</div>
+          <div class="alerta-urgente"><i class="ti ti-alert-octagon" style="font-size:12px;" aria-hidden="true"></i>Alerta enviada a Andrés Suárez · 18/05</div>
+        </div>
+      </div>
+      <div>
+        <div class="f-section">Observaciones</div>
+        <div style="margin-top:8px;">
+          <div class="obs-item obs-c"><div class="obs-titulo">Motor DMP-033 — sin respuesta</div><div class="obs-texto">No activa ante señal de prueba. Persiana queda abierta. Sin control de humo.</div><div class="obs-meta">Andrés Mari · 15/05 <span class="rb rb-c" style="font-size:9px;padding:1px 6px;">Crítico</span></div></div>
+          <div class="obs-item obs-a"><div class="obs-titulo">Bisagra DMP-035 — desgaste severo</div><div class="obs-texto">Cierre incompleto al 70%. Requiere lubricación y ajuste estructural.</div><div class="obs-meta">Andrés Mari · 15/05 <span class="rb rb-a" style="font-size:9px;padding:1px 6px;">Alto</span></div></div>
+          <div class="obs-item obs-m" style="margin-bottom:0;"><div class="obs-titulo">Acceso DMP-036/037 obstruido</div><div class="obs-texto">Materiales de obra frente al ducto. No se completó inspección visual.</div><div class="obs-meta">Víctor Pintos · 16/05 <span class="rb rb-m" style="font-size:9px;padding:1px 6px;">Medio</span></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="f-section">Fotografías</div>
+        <div style="margin-top:8px;" class="fotos-grid">
+          <div class="foto-th filled"><i class="ti ti-tool" aria-hidden="true"></i><div class="foto-lbl">Motor DMP-033</div><span class="foto-badge rb-c">Crítico</span></div>
+          <div class="foto-th filled"><i class="ti ti-wind" aria-hidden="true"></i><div class="foto-lbl">Persiana DMP-035</div><span class="foto-badge rb-a">Alto</span></div>
+          <div class="foto-th filled"><i class="ti ti-box" aria-hidden="true"></i><div class="foto-lbl">Obstrucción acceso</div><span class="foto-badge rb-m">Medio</span></div>
+          <div class="foto-th filled"><i class="ti ti-ruler" aria-hidden="true"></i><div class="foto-lbl">Vista general</div></div>
+          <div class="foto-th dashed" onclick="addFotoTarea(this)"><i class="ti ti-camera-plus" aria-hidden="true"></i><div class="foto-lbl">Agregar</div></div>
+          <div class="foto-th dashed" onclick="addFotoTarea(this)"><i class="ti ti-camera-plus" aria-hidden="true"></i><div class="foto-lbl">Agregar</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="f-section">Historial</div>
+        <div style="margin-top:10px;" class="tl">
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--rc);"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-fecha">15/05/2026 · 09:30</div><div class="tl-evento">Inspección iniciada</div><div class="tl-desc">3 de 8 dampers. Falla crítica DMP-033. Tarea marcada como pendiente.</div><div class="tl-autor">Andrés Mari</div></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--gold);"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-fecha">18/05/2026 · 14:15</div><div class="tl-evento">Recomendación técnica agregada</div><div class="tl-desc">Alerta urgente enviada al supervisor.</div><div class="tl-autor">Cristina Screollini</div></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--ra);"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-fecha">20/05/2026 · 11:00</div><div class="tl-evento">Segunda inspección parcial</div><div class="tl-desc">DMP-036/037 sin inspeccionar por obstrucción. Solicitud de despeje enviada.</div><div class="tl-autor">Víctor Pintos</div></div></div>
+          <div class="tl-item"><div class="tl-left"><div class="tl-dot" style="background:var(--cream3);"></div></div><div class="tl-content" style="padding-bottom:0;"><div class="tl-fecha">Pendiente</div><div class="tl-evento" style="color:var(--muted);">Reinspección y cierre</div><div class="tl-desc">Zona debe despejarse. DMP-033 requiere técnico especializado.</div></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="f-section">Registrar avance</div>
+        <div class="f-card" style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">
+          <div><label class="f-label">Tipo de actualización</label><select class="f-input"><option>Avance parcial — tarea continúa</option><option>Cierre definitivo</option><option>Reprogramar</option><option>Escalar — intervención externa</option></select></div>
+          <div><label class="f-label">Descripción del avance</label><textarea class="f-input" placeholder="Qué se hizo, qué queda pendiente..." style="min-height:70px;resize:none;"></textarea></div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+            <div><label class="f-label">Nueva fecha límite</label><input type="date" class="f-input" value="2026-05-31"></div>
+            <div><label class="f-label">Responsable</label><select class="f-input"><option>Andrés Mari</option><option>Víctor Pintos</option><option>Andrés Suárez</option></select></div>
+          </div>
+          <button class="f-btn f-btn-primary" onclick="alert('Avance registrado. Historial actualizado.')">Registrar avance</button>
+          <button class="f-btn f-btn-success" onclick="alert('Tarea cerrada. Informe enviado a cscreollini@baluma.uy y asuarez@baluma.uy · copia amari@baluma.uy')">Cerrar y enviar informe</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CRONOGRAMA ── -->
+<div id="s-cronograma" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goTo('s-home')"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Cronograma</div>
+    <button class="f-nav-action" id="btn-nueva-tarea" onclick="alert('Agregar tarea')">+ Tarea</button>
+  </div>
+  <div class="f-content">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;">
+      <button class="f-btn f-btn-primary f-btn-sm">Hoy</button>
+      <button class="f-btn f-btn-secondary f-btn-sm">Semana</button>
+      <button class="f-btn f-btn-secondary f-btn-sm">Mes</button>
+    </div>
+    <div class="f-alert"><i class="ti ti-alert-octagon" aria-hidden="true"></i><div class="f-alert-text">1 inspección crítica vencida — no puede postponerse.</div></div>
+    <div class="f-section">Miércoles 28 mayo 2026</div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="task-row"><div class="task-bar" style="background:var(--cream3);"></div><div class="task-info"><div class="task-name">Extintores — Lobby</div><div class="task-meta">09:00 · Completada</div></div><div class="task-right"><span class="rb rb-b" style="font-size:9px;">Bajo</span><div style="font-size:11px;color:var(--muted);">Víctor P.</div></div></div>
+      <div class="task-row"><div class="task-bar" style="background:var(--cream3);"></div><div class="task-info"><div class="task-name">Pulsadores — Casino</div><div class="task-meta">08:30 · Completada con obs.</div></div><div class="task-right"><span class="rb rb-a" style="font-size:9px;">Alto</span><div style="font-size:11px;color:var(--muted);">Andrés M.</div></div></div>
+      <div class="task-row"><div class="task-bar" style="background:var(--rc);"></div><div class="task-info"><div class="task-name">FM200 — Sala técnica</div><div class="task-meta">Vence 15:00 · CRÍTICO — NO POSTPONER</div></div><div class="task-right"><span class="rb rb-c" style="font-size:9px;">Crítico</span><div style="font-size:11px;color:var(--rc);">Sin asignar</div></div></div>
+      <div class="task-row" style="border-bottom:none;"><div class="task-bar" style="background:var(--rm);"></div><div class="task-info"><div class="task-name">Detectores — Torre P5–P8</div><div class="task-meta">16:00 · Programada</div></div><div class="task-right"><span class="rb rb-m" style="font-size:9px;">Medio</span><div style="font-size:11px;color:var(--muted);">Víctor P.</div></div></div>
+    </div>
+    <div class="f-section">Reprogramar inspección</div>
+    <div class="f-card" style="display:flex;flex-direction:column;gap:10px;">
+      <div><label class="f-label">Inspección</label><select class="f-input"><option>Detectores — Torre P5–P8</option><option>Puertas cortafuego — Alas</option></select></div>
+      <div><label class="f-label">Nueva fecha</label><input type="date" class="f-input" value="2026-05-30"></div>
+      <div><label class="f-label">Motivo (trazabilidad)</label><textarea class="f-input" placeholder="Registrá el motivo para el historial..." style="min-height:58px;resize:none;"></textarea></div>
+      <button class="f-btn f-btn-primary f-btn-sm" onclick="alert('Reprogramada. Motivo registrado.')">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ── -->
+<div id="s-report" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goTo('s-home')"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Dashboard</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="f-content">
+    <div class="f-card-dark">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:0.2em;text-transform:uppercase;">Resumen ejecutivo 2026</div>
+      <div style="font-family:var(--font-serif);font-size:22px;color:var(--cream);font-weight:400;margin-top:6px;">Nivel global de riesgo</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:10px;"><div style="width:14px;height:14px;border-radius:50%;background:var(--rm);flex-shrink:0;"></div><div style="font-family:var(--font-serif);font-size:28px;color:var(--rm);font-weight:400;">Medio</div></div>
+    </div>
+    <div class="f-stats">
+      <div class="f-stat"><div class="f-stat-label">Cumplimiento</div><div class="f-stat-num n-b">91%</div><div class="f-stat-sub">Meta: 95%</div></div>
+      <div class="f-stat"><div class="f-stat-label">Inspecciones</div><div class="f-stat-num n-g">47</div><div class="f-stat-sub">+8 vs abril</div></div>
+      <div class="f-stat"><div class="f-stat-label">Críticos abiertos</div><div class="f-stat-num n-c">2</div><div class="f-stat-sub">Sin cerrar</div></div>
+      <div class="f-stat"><div class="f-stat-label">Pendientes</div><div class="f-stat-num n-a">64</div><div class="f-stat-sub">Securitas</div></div>
+    </div>
+    <div class="f-section">Informes generados</div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="f-li"><div class="f-li-icon"><i class="ti ti-file-description" aria-hidden="true"></i></div><div class="f-li-info"><div class="f-li-title">Informe anual 2025</div><div class="f-li-sub">Andrés Suárez · 31/12/2025</div></div><i class="ti ti-download" style="color:var(--muted);font-size:18px;" aria-hidden="true"></i></div>
+      <div class="f-li"><div class="f-li-icon"><i class="ti ti-file-description" aria-hidden="true"></i></div><div class="f-li-info"><div class="f-li-title">Informe semanal 19–25 mayo</div><div class="f-li-sub">Andrés Suárez · 25/05/2026</div></div><i class="ti ti-download" style="color:var(--muted);font-size:18px;" aria-hidden="true"></i></div>
+    </div>
+    <button class="f-btn f-btn-primary">Generar informe ejecutivo</button>
+  </div>
+</div>
+
+<!-- ── ADMIN ── -->
+<div id="s-admin" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goTo('s-home')"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Administración</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="f-content">
+    <div class="f-section">Usuarios</div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="f-li" onclick="goTo('s-admin-user')"><div class="lu-av av-g" style="width:36px;height:36px;font-size:12px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">AS</div><div class="f-li-info"><div class="f-li-title">Andrés Suárez</div><div class="f-li-sub">asuarez@baluma.uy</div></div><span class="lu-badge lb-s">Admin</span></div>
+      <div class="f-li" onclick="goTo('s-admin-user')"><div class="lu-av av-s" style="width:36px;height:36px;font-size:12px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">CS</div><div class="f-li-info"><div class="f-li-title">Cristina Screollini</div><div class="f-li-sub">cscreollini@baluma.uy</div></div><span class="lu-badge lb-t">Técnica</span></div>
+      <div class="f-li" onclick="goTo('s-admin-user')"><div class="lu-av av-b" style="width:36px;height:36px;font-size:12px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">AM</div><div class="f-li-info"><div class="f-li-title">Andrés Mari</div><div class="f-li-sub">amari@baluma.uy</div></div><span class="lu-badge lb-a">Inspector</span></div>
+      <div class="f-li" onclick="goTo('s-admin-user')"><div class="lu-av av-b" style="width:36px;height:36px;font-size:12px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">VP</div><div class="f-li-info"><div class="f-li-title">Víctor Pintos</div><div class="f-li-sub">vpintos@baluma.uy</div></div><span class="lu-badge lb-a">Inspector</span></div>
+    </div>
+    <button class="f-btn f-btn-primary" onclick="alert('Crear usuario — requiere Supabase')">+ Nuevo usuario</button>
+    <div class="f-section">Tipos de inspección</div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="f-li"><div class="f-li-info"><div class="f-li-title">Extintores</div><div class="f-li-sub">Extinción · Mensual · Bajo</div></div><span class="rb rb-b" style="font-size:9px;">4 ítems</span></div>
+      <div class="f-li"><div class="f-li-info"><div class="f-li-title">Detectores de humo</div><div class="f-li-sub">Detección · Mensual · Medio</div></div><span class="rb rb-m" style="font-size:9px;">6 ítems</span></div>
+      <div class="f-li"><div class="f-li-info"><div class="f-li-title">Puertas cortafuego</div><div class="f-li-sub">Compartimentación · Mensual · Alto</div></div><span class="rb rb-a" style="font-size:9px;">5 ítems</span></div>
+      <div class="f-li"><div class="f-li-info"><div class="f-li-title">Sistema FM200</div><div class="f-li-sub">Extinción · Bimensual · Crítico</div></div><span class="rb rb-c" style="font-size:9px;">8 ítems</span></div>
+      <div class="f-li" style="border-bottom:none;"><div class="f-li-info"><div class="f-li-title">Sistema Ansul</div><div class="f-li-sub">Extinción · Semestral · Crítico</div></div><span class="rb rb-c" style="font-size:9px;">7 ítems</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+      <button class="f-btn f-btn-secondary f-btn-sm">+ Tipo inspección</button>
+      <button class="f-btn f-btn-danger f-btn-sm">Eliminar tipo</button>
+    </div>
+    <div class="f-section">Correos configurados</div>
+    <div class="f-card">
+      <div class="eq-prop"><span class="eq-prop-label">Principal</span><span style="font-size:12px;">cscreollini@baluma.uy</span></div>
+      <div class="eq-prop"><span class="eq-prop-label">Supervisor</span><span style="font-size:12px;">asuarez@baluma.uy</span></div>
+      <div class="eq-prop"><span class="eq-prop-label">Copia</span><span style="font-size:12px;">amari@baluma.uy</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADMIN USER ── -->
+<div id="s-admin-user" class="screen">
+  <div class="f-nav">
+    <button class="f-nav-back" onclick="goBack()"><i class="ti ti-arrow-left" aria-hidden="true"></i>Volver</button>
+    <div class="f-nav-title">Permisos</div>
+    <div style="width:50px;"></div>
+  </div>
+  <div class="f-content">
+    <div class="f-card-dark">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="lu-av av-b" style="width:44px;height:44px;font-size:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">AM</div>
+        <div><div style="font-family:var(--font-serif);font-size:19px;color:var(--cream);">Andrés Mari</div><div style="font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:3px;">amari@baluma.uy</div></div>
+      </div>
+    </div>
+    <div class="f-section">Permisos</div>
+    <div class="f-card" style="padding:0 16px 4px;">
+      <div class="perm-row"><span class="perm-label">Realizar inspecciones</span><button class="toggle on" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Tomar fotografías</span><button class="toggle on" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Cargar observaciones</span><button class="toggle on" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Ver informes y dashboard</span><button class="toggle on" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Generar informe por inspección</span><button class="toggle on" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Editar informes</span><button class="toggle off" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Agregar criticidad</span><button class="toggle off" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Enviar alertas urgentes</span><button class="toggle off" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row"><span class="perm-label">Crear tareas en cronograma</span><button class="toggle off" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+      <div class="perm-row" style="border-bottom:none;"><span class="perm-label">Administrar usuarios</span><button class="toggle off" onclick="togglePerm(this)"><div class="toggle-dot"></div></button></div>
+    </div>
+    <div class="f-card" style="display:flex;flex-direction:column;gap:10px;">
+      <button class="f-btn f-btn-secondary" onclick="alert('Enlace de reseteo enviado a amari@baluma.uy')" style="display:flex;align-items:center;justify-content:center;gap:8px;"><i class="ti ti-mail" aria-hidden="true"></i>Enviar reseteo de contraseña</button>
+      <button class="f-btn f-btn-danger" onclick="alert('Usuario desactivado')">Desactivar usuario</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+
+<script>
+let currentUser = { initials:'AS', role:'supervisor' };
+let navStack = [];
+let checkedCount = 0;
+
+function login(initials, name, role) {
+  currentUser = { initials, name, role };
+  document.getElementById('home-av').textContent = initials;
+  const b = document.getElementById('home-badge');
+  b.textContent = role==='supervisor'?'Admin':role==='tecnica'?'Técnica':'Inspector';
+  b.className = 'lu-badge '+(role==='supervisor'?'lb-s':role==='tecnica'?'lb-t':'lb-a');
+  const adminBtn = document.getElementById('btn-admin');
+  if(adminBtn) adminBtn.style.display = role==='supervisor'?'flex':'none';
+  const ntBtn = document.getElementById('btn-nueva-tarea');
+  if(ntBtn) ntBtn.style.display = role==='supervisor'?'block':'none';
+  const rf = document.getElementById('recom-field');
+  if(rf) rf.style.display = role==='tecnica'?'block':'none';
+  goTo('s-home'); navStack=[];
+}
+
+function logout() { navStack=[]; goTo('s-login'); }
+
+function goTo(id) {
+  const cur = document.querySelector('.screen.active');
+  if(cur) navStack.push(cur.id);
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const t = document.getElementById(id);
+  if(t){ t.classList.add('active'); t.scrollTop=0; }
+}
+
+function goBack() {
+  if(navStack.length>0){
+    const prev = navStack.pop();
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(prev).classList.add('active');
+  }
+}
+
+function tabNav(tab) {
+  const map={home:'s-home',qr:'s-qr',pendientes:'s-pendientes',report:'s-report'};
+  navStack=[];
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(map[tab]).classList.add('active');
+  document.querySelectorAll('.f-tab').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function toggleCheck(id) {
+  const el = document.getElementById(id);
+  const was = el.classList.contains('checked');
+  el.classList.toggle('checked');
+  checkedCount += was?-1:1;
+  const c = document.getElementById('ck-counter');
+  if(c) c.textContent = Math.max(0,checkedCount)+'/4';
+}
+
+function setSev(l) {
+  ['c','a','m','b'].forEach(x=>{ const e=document.getElementById('sv-'+x); if(e) e.className='f-sev-btn'; });
+  const el=document.getElementById('sv-'+l); if(el) el.className='f-sev-btn sev-ac-'+l;
+}
+
+function addPhoto() {
+  const row=document.getElementById('photo-row');
+  const p=document.createElement('div');
+  p.className='f-photo filled';
+  p.innerHTML='<i class="ti ti-camera-check" style="font-size:24px;color:#1e8449;" aria-hidden="true"></i>';
+  row.insertBefore(p,row.lastElementChild);
+}
+
+function addFotoTarea(el) {
+  el.className='foto-th filled';
+  el.innerHTML='<i class="ti ti-camera-check" style="font-size:24px;color:#1e8449;" aria-hidden="true"></i><div class="foto-lbl" style="color:var(--mid);">Foto agregada</div>';
+  el.onclick=null;
+}
+
+function simulateScan() {
+  alert('QR escaneado: EXT-001 · Extintor CO₂ — Lobby principal');
+  goTo('s-equipo');
+}
+
+function sendReport() {
+  alert('Informe enviado:\nPara: cscreollini@baluma.uy\nPara: asuarez@baluma.uy\nCc: amari@baluma.uy');
+  goTo('s-home');
+}
+
+function setFiltro(el) {
+  document.querySelectorAll('.filtro').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function togglePerm(btn) {
+  btn.classList.toggle('on');
+  btn.classList.toggle('off');
+}
+</script>
+</body>
+</html>
