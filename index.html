@@ -549,6 +549,153 @@ console.log('✅ Funciones de tareas cargadas');
 
 </script>
 
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ===== SUPABASE CONFIG =====
+const SUPABASE_URL = 'https://oeggvtvdizippgetrrih.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lZ2d2dHZkaXppcHBnZXRycmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODAxNTQsImV4cCI6MjA5NTU1NjE1NH0.O793npT8vuckYwHii9g3Seo8r3pXALIza5rb_yrKn0k';
+
+let supabase = null;
+let tareasProximoMes = [];
+let equiposActivos = [];
+
+// Inicializar Supabase
+function initSupabase() {
+  if (typeof window.supabase !== 'undefined') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log('✅ Supabase inicializado');
+    cargarDatosIniciales();
+  } else {
+    setTimeout(initSupabase, 100);
+  }
+}
+
+// Cargar tareas y equipos al iniciar
+async function cargarDatosIniciales() {
+  await cargarTareasProximoMes();
+  await cargarEquipos();
+}
+
+// Cargar tareas del próximo mes
+async function cargarTareasProximoMes() {
+  try {
+    const hoy = new Date();
+    const proximoMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
+    const proximoMesStr = proximoMes.toISOString().split('T')[0].substring(0, 7);
+    
+    const { data, error } = await supabase
+      .from('tareas')
+      .select('*')
+      .gte('fecha_apertura', proximoMesStr + '-01')
+      .lte('fecha_apertura', proximoMesStr + '-31')
+      .order('titulo');
+    
+    if (error) throw error;
+    
+    tareasProximoMes = data || [];
+    console.log('✅ Tareas cargadas:', tareasProximoMes.length);
+    
+    return tareasProximoMes;
+  } catch (err) {
+    console.error('Error cargando tareas:', err);
+    return [];
+  }
+}
+
+// Cargar equipos (extintores)
+async function cargarEquipos() {
+  try {
+    const { data, error } = await supabase
+      .from('equipos')
+      .select('*')
+      .eq('estado', 'activo')
+      .order('nombre')
+      .limit(50);
+    
+    if (error) throw error;
+    
+    equiposActivos = data || [];
+    console.log('✅ Equipos cargados:', equiposActivos.length);
+    
+    return equiposActivos;
+  } catch (err) {
+    console.error('Error cargando equipos:', err);
+    return [];
+  }
+}
+
+// Actualizar asignación de tarea
+async function asignarTareaAUsuario(tareaId, responsableId) {
+  try {
+    const { error } = await supabase
+      .from('tareas')
+      .update({ responsable_id: responsableId })
+      .eq('id', tareaId);
+    
+    if (error) throw error;
+    
+    console.log('✅ Tarea asignada');
+    await cargarTareasProximoMes();
+    return true;
+  } catch (err) {
+    console.error('Error asignando tarea:', err);
+    return false;
+  }
+}
+
+// Hook para cuando se carga el login
+const originalLogin = window.login;
+window.login = function(initials, name, role) {
+  originalLogin(initials, name, role);
+  
+  // Al entrar al home, cargar datos
+  setTimeout(() => {
+    actualizarPantallasConDatos();
+  }, 500);
+};
+
+// Actualizar pantallas con datos reales
+function actualizarPantallasConDatos() {
+  if (tareasProximoMes.length > 0) {
+    mostrarTareasEnHome();
+  }
+  console.log('✅ Datos cargados en pantalla');
+}
+
+// Mostrar tareas en la pantalla de home (si existe elemento para ello)
+function mostrarTareasEnHome() {
+  // Buscar elemento donde mostrar tareas
+  let contenedor = document.querySelector('[data-tareas]') || 
+                   document.querySelector('.tareas-list') ||
+                   document.getElementById('tareas-list');
+  
+  if (!contenedor) {
+    console.log('ℹ️ No hay contenedor de tareas en la pantalla actual');
+    return;
+  }
+  
+  let html = '';
+  for (const tarea of tareasProximoMes.slice(0, 10)) {
+    const colorRiesgo = tarea.nivel_criticidad === 'critico' ? 'c' :
+                       tarea.nivel_criticidad === 'alto' ? 'a' :
+                       tarea.nivel_criticidad === 'medio' ? 'm' : 'b';
+    
+    html += \`
+      <div style="background: white; padding: 12px; margin: 8px 0; border-left: 4px solid var(--r\${colorRiesgo}); border-radius: 4px;">
+        <div style="font-weight: 600; font-size: 14px;">\${tarea.titulo}</div>
+        <div style="font-size: 12px; color: #999; margin-top: 5px;">\${tarea.fecha_apertura} | \${tarea.nivel_criticidad}</div>
+      </div>
+    \`;
+  }
+  
+  contenedor.innerHTML = html;
+}
+
+// Iniciar
+initSupabase();
+</script>
+
 </head>
 <body>
 <div id="app">
