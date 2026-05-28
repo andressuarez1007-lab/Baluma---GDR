@@ -398,36 +398,6 @@ function getProximoMes() {
 }
 
 // Validar login contra Supabase
-async function validarLogin(email, password) {
-  try {
-    // Buscar usuario en tabla usuarios
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('email', email)
-      .single();
-    
-    if (error || !data) {
-      alert('Usuario no encontrado');
-      return null;
-    }
-    
-    // Aquí en producción usarías Supabase Auth real
-    // Por ahora validamos que exista el usuario
-    currentUser = {
-      id: data.id,
-      nombre: data.nombre,
-      email: data.email,
-      rol: data.rol,
-      initials: data.nombre.split(' ').map(n => n[0]).join('')
-    };
-    
-    return currentUser;
-  } catch (err) {
-    console.error('Error validando login:', err);
-    return null;
-  }
-}
 
 // Cargar tareas del mes próximo
 async function cargarTareasProximoMes() {
@@ -594,22 +564,22 @@ console.log('✅ Funciones de tareas cargadas');
     <div class="login-sep"></div>
     <div class="login-users">
       <p style="font-size:11px;color:var(--muted);text-align:center;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Seleccioná tu usuario</p>
-            <div class="login-user" onclick="validarLogin('asuarez@baluma.uy', 'asuarez'); goTo('s-home');">
+            <div class="login-user" onclick="login('AS','Andrés Suárez','supervisor')">
         <div class="lu-av av-g">AS</div>
         <div class="lu-info"><div class="lu-name">Andrés Suárez</div><div class="lu-role">Supervisor de turno</div></div>
         <span class="lu-badge lb-s">Admin</span>
       </div>
-      <div class="login-user" onclick="validarLogin('cscreollini@baluma.uy', 'cscreollini'); goTo('s-home');">
+      <div class="login-user" onclick="login('CS','Cristina Screollini','tecnica')">
         <div class="lu-av av-s">CS</div>
         <div class="lu-info"><div class="lu-name">Cristina Screollini</div><div class="lu-role">Técnica Prevencionista</div></div>
         <span class="lu-badge lb-t">Técnica</span>
       </div>
-      <div class="login-user" onclick="validarLogin('amari@baluma.uy', 'amari'); goTo('s-home');">
+      <div class="login-user" onclick="login('AM','Andrés Mari','auxiliar')">
         <div class="lu-av av-b">AM</div>
         <div class="lu-info"><div class="lu-name">Andrés Mari</div><div class="lu-role">Auxiliar Inspector</div></div>
         <span class="lu-badge lb-a">Inspector</span>
       </div>
-      <div class="login-user" onclick="validarLogin('vpintos@baluma.uy', 'vpintos'); goTo('s-home');">
+      <div class="login-user" onclick="login('VP','Víctor Pintos','auxiliar')">
         <div class="lu-av av-b">VP</div>
         <div class="lu-info"><div class="lu-name">Víctor Pintos</div><div class="lu-role">Auxiliar Inspector</div></div>
         <span class="lu-badge lb-a">Inspector</span>
@@ -1068,25 +1038,22 @@ let currentUser = { initials:'AS', role:'supervisor' };
 let navStack = [];
 let checkedCount = 0;
 
-async function login(email, password) {
-  const btn = event.target;
-  btn.disabled = true;
-  btn.textContent = 'Validando...';
+function login(initials, name, role) {
+  currentUser = {
+    initials: initials,
+    nombre: name,
+    rol: role
+  };
   
-  const user = await validarLogin(email, password);
+  // Actualizar UI
+  document.getElementById('home-av').textContent = initials;
+  const badgeMap = { 'supervisor': 'lb-s', 'tecnica': 'lb-t', 'auxiliar': 'lb-a' };
+  document.getElementById('home-badge').className = 'lu-badge ' + (badgeMap[role] || 'lb-p');
   
-  if (user) {
-    // Cargar tareas del próximo mes
-    await cargarTareasProximoMes();
-    // Cargar equipos
-    await cargarEquipos();
-    // Ir a home
-    goTo('s-home');
-  } else {
-    alert('Email o contraseña inválidos');
-    btn.disabled = false;
-    btn.textContent = 'Ingresar';
-  }
+  // Ir a home
+  goTo('s-home');
+  
+  console.log('✅ Login exitoso:', name);
 }
 
 function logout() { 
