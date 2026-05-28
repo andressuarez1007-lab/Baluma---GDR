@@ -364,48 +364,60 @@ html, body {
 .eq-prop-label { color: var(--muted); }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ===== SUPABASE =====
-const SUPABASE_URL = 'https://oeggvtvdizippgetrrih.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lZ2d2dHZkaXppcHBnZXRycmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODAxNTQsImV4cCI6MjA5NTU1NjE1NH0.O793npT8vuckYwHii9g3Seo8r3pXALIza5rb_yrKn0k';
+// ===== SUPABASE REST API (sin cliente JS) =====
+var SB_URL = 'https://oeggvtvdizippgetrrih.supabase.co/rest/v1';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9lZ2d2dHZkaXppcHBnZXRycmloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5ODAxNTQsImV4cCI6MjA5NTU1NjE1NH0.O793npT8vuckYwHii9g3Seo8r3pXALIza5rb_yrKn0k';
 
-let db = null;
-let tareasData = [];
-let equiposData = [];
+var tareasData = [];
+var equiposData = [];
 
-window.addEventListener('DOMContentLoaded', function() {
-  db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  console.log('Supabase listo');
-});
-
-async function cargarTareas() {
-  if (!db) return [];
-  const { data, error } = await db.from('tareas').select('*').order('fecha_apertura').limit(100);
-  if (error) { console.error('Error tareas:', error.message); return []; }
-  tareasData = data || [];
-  console.log('Tareas:', tareasData.length);
-  return tareasData;
+function sbFetch(tabla, params, callback) {
+  var url = SB_URL + '/' + tabla + '?' + (params || '');
+  fetch(url, {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data && data.code) {
+      console.error('Error ' + tabla + ':', data.message);
+      callback([]);
+    } else {
+      console.log(tabla + ' OK:', data.length);
+      callback(data || []);
+    }
+  })
+  .catch(function(e) {
+    console.error('Fetch error:', e.message);
+    callback([]);
+  });
 }
 
-async function cargarEquiposDB() {
-  if (!db) return [];
-  const { data, error } = await db.from('equipos').select('*').eq('estado', 'activo').order('nombre').limit(100);
-  if (error) { console.error('Error equipos:', error.message); return []; }
-  equiposData = data || [];
-  console.log('Equipos:', equiposData.length);
-  return equiposData;
+function cargarTareas(callback) {
+  sbFetch('tareas', 'order=fecha_apertura&limit=200', function(data) {
+    tareasData = data;
+    callback(data);
+  });
+}
+
+function cargarEquipos(callback) {
+  sbFetch('equipos', 'estado=eq.activo&order=nombre&limit=200', function(data) {
+    equiposData = data;
+    callback(data);
+  });
 }
 
 function renderTareas() {
   var el = document.getElementById('tareas-contenedor');
   if (!el) return;
-
-  if (tareasData.length === 0) {
+  if (!tareasData || tareasData.length === 0) {
     el.innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Sin tareas disponibles</p>';
     return;
   }
-
   var html = '';
   for (var i = 0; i < tareasData.length; i++) {
     var t = tareasData[i];
@@ -414,9 +426,9 @@ function renderTareas() {
               t.nivel_criticidad === 'medio'   ? '#b7950b' : '#1e8449';
     var est = t.responsable_id ? '✅ Asignada' : '⚠️ Sin asignar';
     html += '<div style="background:white;margin:10px 0;border-radius:8px;border-left:4px solid ' + col + ';padding:15px;">';
-    html += '<div style="font-weight:600;font-size:15px;font-family:'Cormorant Garamond',serif;">' + t.titulo + '</div>';
+    html += '<div style="font-weight:600;font-size:15px;font-family:Cormorant Garamond,serif;">' + t.titulo + '</div>';
     html += '<div style="font-size:12px;color:#8c8278;margin-top:6px;">' + t.fecha_apertura + ' &nbsp;·&nbsp; ' + est + '</div>';
-    html += '<div style="margin-top:8px;"><span style="background:' + col + ';color:white;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.5px;">' + (t.nivel_criticidad || 'N/A').toUpperCase() + '</span></div>';
+    html += '<div style="margin-top:8px;"><span style="background:' + col + ';color:white;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;">' + (t.nivel_criticidad||'N/A').toUpperCase() + '</span></div>';
     html += '</div>';
   }
   el.innerHTML = html;
@@ -425,18 +437,16 @@ function renderTareas() {
 function renderEquipos() {
   var el = document.getElementById('extintores-contenedor');
   if (!el) return;
-
-  if (equiposData.length === 0) {
-    el.innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Sin extintores disponibles</p>';
+  if (!equiposData || equiposData.length === 0) {
+    el.innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Sin equipos disponibles</p>';
     return;
   }
-
   var html = '';
   for (var i = 0; i < equiposData.length; i++) {
     var eq = equiposData[i];
     html += '<div style="background:white;margin:10px 0;border-radius:8px;border-left:4px solid #b8965a;padding:15px;">';
-    html += '<div style="font-weight:600;font-size:14px;font-family:'Cormorant Garamond',serif;">MAT: ' + eq.codigo + ' &nbsp;|&nbsp; ' + (eq.nombre || '') + '</div>';
-    html += '<div style="font-size:12px;color:#8c8278;margin-top:6px;">📍 ' + (eq.zona || 'Sin zona') + '</div>';
+    html += '<div style="font-weight:600;font-size:14px;font-family:Cormorant Garamond,serif;">MAT ' + eq.codigo + ' &nbsp;·&nbsp; ' + (eq.nombre||'') + '</div>';
+    html += '<div style="font-size:12px;color:#8c8278;margin-top:6px;">📍 ' + (eq.zona||'Sin zona') + '</div>';
     if (eq.ultima_inspeccion) {
       html += '<div style="font-size:12px;color:#8c8278;margin-top:4px;">🔧 Última: ' + eq.ultima_inspeccion + '</div>';
     }
@@ -444,6 +454,8 @@ function renderEquipos() {
   }
   el.innerHTML = html;
 }
+
+console.log('API REST Supabase lista');
 </script>
 </head>
 <body>
@@ -998,16 +1010,15 @@ function goTo(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const t = document.getElementById(id);
   if(t){ t.classList.add('active'); t.scrollTop=0; }
-  
   if (id === 's-tareas') {
     document.getElementById('tareas-contenedor').innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Cargando...</p>';
-    cargarTareas().then(renderTareas);
-  } else if (id === 's-extintores') {
+    cargarTareas(renderTareas);
+  }
+  if (id === 's-extintores') {
     document.getElementById('extintores-contenedor').innerHTML = '<p style="text-align:center;color:#8c8278;padding:30px;">Cargando...</p>';
-    cargarEquiposDB().then(renderEquipos);
+    cargarEquipos(renderEquipos);
   }
 }
-
 function goBack() {
   if(navStack.length>0){
     const prev = navStack.pop();
