@@ -1252,6 +1252,15 @@ function goTo(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const t = document.getElementById(id);
   if(t){ t.classList.add('active'); t.scrollTop=0; }
+  
+  // Cargar datos cuando se abre pantallas específicas
+  setTimeout(() => {
+    if (id === 's-tareas' && typeof mostrarTareasEnHome === 'function') {
+      mostrarTareasEnHome();
+    } else if (id === 's-extintores' && typeof mostrarExtintoresEnPantalla === 'function') {
+      mostrarExtintoresEnPantalla();
+    }
+  }, 100);
 }
 
 function goBack() {
